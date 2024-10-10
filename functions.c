@@ -159,14 +159,17 @@ void CharSwap(char *char1, char *char2)
 
 int ReverseStr(char *_str)
 {
-    size_t length = strlen(_str);
+    size_t length;
     int left = 0;
-    int right = length - 1;
+    int right = 0;
 
     if (_str == NULL)
     {
         return NULL_PTR_ERROR;
     }
+
+    length = strlen(_str);
+    right = length - 1;
 
     while (left < right)
     {
@@ -186,28 +189,28 @@ int IsPalindrome(char *_str)
 
     if (_str == NULL)
     {
-        return NULL_PTR_ERROR;
+        return -2;
     }
 
     while (left < right)
     {
         if (_str[left++] != _str[right--])
         {
-            return OK;
+            return FALSE;
         }
     }
 
-    return 1;
+    return TRUE;
 }
 
 int MyAToI(char *_str, int *_num)
 {
-    size_t length;
     int index = 0;
     int j = 0;
     int m = 1;
     int isNegative = 0;
     int result = 0;
+    int sign = PLUS;
 
     if (_str == NULL || _num == NULL)
     {

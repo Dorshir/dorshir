@@ -7,6 +7,10 @@
 #define OK 0
 #define NULL_PTR_ERROR -1
 #define INVALID_INPUT_ERROR -2
+#define FALSE -1
+#define TRUE 0
+#define PLUS 1
+#define MINUS -1
 
 /**
  * @brief   Finds the median of an integer array.
@@ -54,7 +58,7 @@ int IsPalindrome(char* _str);
  * 
  * @param _str  The string to be converted. This must be a null-terminated string containing numeric characters.
  * @param _num  Pointer to an integer where the converted value will be stored.
- * @return  0 if successful, or -1 if the input string or the integer pointer is NULL, or -2 if the input is invalid.
+ * @return  0 if palindrome, or -1 if not, or -2 if input string or the integer pointer is NULL.
  */
 int MyAToI(char* _str, int* _num);
 
@@ -67,4 +71,3 @@ int MyAToI(char* _str, int* _num);
  * @return  0 if successful, or -1 if the input buffer pointer is NULL.
  */
 int MyIToA(int _num, char* _buffer);
-
