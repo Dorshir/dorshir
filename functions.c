@@ -203,12 +203,25 @@ int IsPalindrome(char *_str)
     return TRUE;
 }
 
+void CharSign(char curr_char, int* sign, int* index){
+
+    if (curr_char == '+')
+    {
+        *index = *index + 1;
+    }
+    else if (curr_char == '-')
+    {
+        *sign = MINUS;
+        *index = *index + 1;
+    }
+
+}
+
 int MyAToI(char *_str, int *_num)
 {
     int index = 0;
     int j = 0;
     int m = 1;
-    int isNegative = 0;
     int result = 0;
     int sign = PLUS;
 
@@ -222,15 +235,7 @@ int MyAToI(char *_str, int *_num)
         index++;
     }
 
-    if (_str[index] == '+')
-    {
-        index++;
-    }
-    else if (_str[index] == '-')
-    {
-        isNegative = 1;
-        index++;
-    }
+    CheckSign(_str[index], &sign);
 
     if (!isdigit(_str[index]))
     {
@@ -242,10 +247,7 @@ int MyAToI(char *_str, int *_num)
         result = result * 10 + (_str[index++] - '0');
     }
 
-    if (isNegative)
-    {
-        result = -result;
-    }
+    result *= sign;
     *_num = result;
 
     return OK;
@@ -265,7 +267,7 @@ int MyIToA(int _num, char *_buffer)
     if (_num < 0)
     {
         isNegative = 1;
-        _num = abs(_num);
+        _num = -_num;
     }
 
     if (_num == 0)

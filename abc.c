@@ -60,3 +60,46 @@ void *MyStrStr(char *str1, char *str2)
     }
     return result;
 }
+
+void ConvertToBinary(int number, int *array, int *index)
+{
+    while (number > 0)
+    {
+        array[*index] = number % 2;
+        number /= 2;
+        ++(*index);
+    }
+    --(*index);
+}
+
+void PrintBinary(int *array, int *index)
+{
+    while (*index >= 0)
+    {
+        printf("%d", array[*index]);
+        --*(index);
+    }
+    printf("\n");
+}
+
+void StringDecToBinary(char *str)
+{
+    int index;
+    size_t length;
+    int number;
+    int binaryArray[32];
+
+    if (str == NULL)
+    {
+        return;
+    }
+
+    length = strlen(str);
+    index = 0;
+
+    number = atoi(str);
+    ConvertToBinary(number, binaryArray, &index);
+    PrintBinary(binaryArray, &index);
+}
+
+

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #define TRUE 1
 #define FALSE 0
 
@@ -11,3 +12,7 @@
  * @return  A pointer to the beginning of the located substring in str1, or NULL if the substring is not found.
  */
 void *MyStrStr(char *str1, char *str2);
+
+void StringDecToBinary(char* str);
+
+void StringBinaryToDec(char* str);
