@@ -132,7 +132,7 @@ pMeeting FindMeeting(pCalendar calendar, float begin)
     return foundMeeting;
 }
 
-int IsOverlap(pCalendar calendar, float begin, float end)
+Status IsOverlap(pCalendar calendar, float begin, float end)
 {
     int result = FALSE;
     int index;
@@ -148,25 +148,25 @@ int IsOverlap(pCalendar calendar, float begin, float end)
     return result;
 }
 
-int CheckInputInsert(pCalendar calendar, pMeeting meeting)
+Status CheckInputInsert(pCalendar calendar, pMeeting meeting)
 {
-    int check = OK;
+    Status check = OK;
     if (calendar == NULL || calendar->meetings == NULL || meeting == NULL)
     {
-        check NULL_PTR_ERROR;
+        check = NULL_PTR_ERROR;
     }
     else if (meeting->begin < MEETING_BEGIN_BOUNDARY || meeting->end > MEETING_END_BOUNDARY || meeting->begin >= meeting->end)
     {
-        check INSERT_FAILED;
+        check = INSERT_FAILED;
     }
     else if (IsOverlap(calendar, meeting->begin, meeting->end))
     {
-        check OVERLAP;
+        check = OVERLAP;
     }
     return check;
 }
 
-int InsertMeeting(pCalendar calendar, pMeeting meeting)
+Status InsertMeeting(pCalendar calendar, pMeeting meeting)
 {
     pMeeting *temp;
     int newSize;
@@ -203,9 +203,9 @@ int InsertMeeting(pCalendar calendar, pMeeting meeting)
     return OK;
 }
 
-int CheckInputRemove(pCalendar calendar, float begin)
+Status CheckInputRemove(pCalendar calendar, float begin)
 {
-    int check = OK;
+    Status check = OK;
     if (calendar == NULL || calendar->meetings == NULL)
     {
         check = NULL_PTR_ERROR;
@@ -217,7 +217,7 @@ int CheckInputRemove(pCalendar calendar, float begin)
     return check;
 }
 
-int RemoveMeeting(pCalendar calendar, float begin)
+Status RemoveMeeting(pCalendar calendar, float begin)
 {
     pMeeting foundMeeting;
     int inputCheck;
@@ -241,7 +241,7 @@ int RemoveMeeting(pCalendar calendar, float begin)
     return OK;
 }
 
-int PrintAD(pCalendar AD)
+Status PrintAD(pCalendar AD)
 {
     int index;
     if (AD == NULL || AD->meetings == NULL)
