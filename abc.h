@@ -13,6 +13,7 @@
  *
  * @param   str1    The string which we are looking for the substring str2 in it.
  * @param   str2    The string that we are looking for in str2.
+ * 
  * @return  Returns a pointer to the beginning of the located substring in str1 if exist.
  *          Returns NULL if the substring is not found.
  */

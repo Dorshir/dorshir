@@ -51,7 +51,7 @@ void *MyStrStr(char *str1, char *str2)
     length1 = strlen(str1);
     length2 = strlen(str2);
 
-    for (index1 = 0; index1 < length1; index1++)
+    for (index1 = 0; index1 < length1 - length2 + 1; index1++)
     {
         index2 = 0;
         if (str1[index1] == str2[index2])
