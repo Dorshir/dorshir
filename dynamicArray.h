@@ -33,11 +33,11 @@ DynamicArray *DynamicArrayCreate(int size, int blockSize);
  *
  * Frees the memory allocated for the dynamic array's internal array and the `DynamicArray` structure itself.
  *
- * @param   DynamincArrayPtr    Pointer to the `DynamicArray` to destroy.
+ * @param   DynamincArrayPtr    Pointer to a pointer to the `DynamicArray` to destroy.
  *
  * @return  Void.
  */
-void DynamicArrayDestroy(DynamicArray *DynaminArrayPtr);
+void DynamicArrayDestroy(DynamicArray **DynaminArrayPtr);
 
 /**
  * @brief   Inserts an element into the dynamic array.

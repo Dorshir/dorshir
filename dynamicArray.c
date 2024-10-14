@@ -1,8 +1,10 @@
 #include "dynamicArray.h"
 
-void PrintArray(DynamicArray* dptr) {
+void PrintArray(DynamicArray *dptr)
+{
     int i;
-    for(i = 0; i < dptr->NumOfElements; ++i) {
+    for (i = 0; i < dptr->NumOfElements; ++i)
+    {
         printf("%d,", dptr->dArray[i]);
     }
     printf("\n");
@@ -31,15 +33,16 @@ DynamicArray *DynamicArrayCreate(int size, int blockSize)
     return pDynamicArray;
 }
 
-void DynamicArrayDestroy(DynamicArray *DynamincArrayPtr)
+void DynamicArrayDestroy(DynamicArray **DynamincArrayPtr)
 {
-    if (DynamincArrayPtr == NULL || DynamincArrayPtr->dArray == NULL)
+    if (DynamincArrayPtr == NULL || (*DynamincArrayPtr) == NULL)
     {
         return;
     }
 
-    free(DynamincArrayPtr->dArray);
-    free(DynamincArrayPtr);
+    free((*DynamincArrayPtr)->dArray);
+    free(*DynamincArrayPtr);
+    *DynamincArrayPtr == NULL;
 }
 
 int DynamicArrayInsert(DynamicArray *DynamincArrayPtr, int data)
@@ -57,7 +60,7 @@ int DynamicArrayInsert(DynamicArray *DynamincArrayPtr, int data)
             return OVERFLOW;
         }
 
-        temp = (int *)realloc(DynamincArrayPtr->dArray, DynamincArrayPtr->dArrayBlockSize * sizeof(int));
+        temp = (int *)realloc(DynamincArrayPtr->dArray, (DynamincArrayPtr->dArraySize + DynamincArrayPtr->dArrayBlockSize) * sizeof(int));
         if (temp == NULL)
         {
             return REALLOC_FAILED;
