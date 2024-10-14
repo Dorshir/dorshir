@@ -15,7 +15,6 @@ void SortMeetings(pMeeting *meetings, int numOfMeetings)
     {
         return;
     }
-
     for (i = 0; i < numOfMeetings - 1; i++)
     {
         for (j = 0; j < numOfMeetings - i - 1; j++)
@@ -149,25 +148,34 @@ int IsOverlap(pCalendar calendar, float begin, float end)
     return result;
 }
 
+int CheckInputInsert(pCalendar calendar, pMeeting meeting)
+{
+    int check = OK;
+    if (calendar == NULL || calendar->meetings == NULL || meeting == NULL)
+    {
+        check NULL_PTR_ERROR;
+    }
+    else if (meeting->begin < MEETING_BEGIN_BOUNDARY || meeting->end > MEETING_END_BOUNDARY || meeting->begin >= meeting->end)
+    {
+        check INSERT_FAILED;
+    }
+    else if (IsOverlap(calendar, meeting->begin, meeting->end))
+    {
+        check OVERLAP;
+    }
+    return check;
+}
+
 int InsertMeeting(pCalendar calendar, pMeeting meeting)
 {
     pMeeting *temp;
     int newSize;
     int overlap;
+    int inputCheck;
 
-    if (calendar == NULL || calendar->meetings == NULL || meeting == NULL)
+    if (inputCheck != OK)
     {
-        return NULL_PTR_ERROR;
-    }
-
-    if (meeting->begin < MEETING_BEGIN_BOUNDARY || meeting->end > MEETING_END_BOUNDARY || meeting->begin >= meeting->end)
-    {
-        return INSERT_FAILED;
-    }
-
-    if (IsOverlap(calendar, meeting->begin, meeting->end))
-    {
-        return OVERLAP;
+        return inputCheck;
     }
 
     if (calendar->numOfMeetings == calendar->meetingsSize)
@@ -195,16 +203,27 @@ int InsertMeeting(pCalendar calendar, pMeeting meeting)
     return OK;
 }
 
-int RemoveMeeting(pCalendar calendar, float begin)
+int CheckInputRemove(pCalendar calendar, float begin)
 {
-    pMeeting foundMeeting;
+    int check = OK;
     if (calendar == NULL || calendar->meetings == NULL)
     {
-        return NULL_PTR_ERROR;
+        check = NULL_PTR_ERROR;
     }
     if (calendar->numOfMeetings == 0)
     {
-        return UNDERFLOW;
+        check = UNDERFLOW;
+    }
+    return check;
+}
+
+int RemoveMeeting(pCalendar calendar, float begin)
+{
+    pMeeting foundMeeting;
+    int inputCheck;
+    if (inputCheck != OK)
+    {
+        return inputCheck;
     }
 
     foundMeeting = FindMeeting(calendar, begin);
@@ -239,19 +258,23 @@ int PrintAD(pCalendar AD)
     return OK;
 }
 
-void DestroyAD(pCalendar *calendar)
+void FreeMeetings(pCalendar calendar)
 {
     int index;
+    for (index = 0; index < calendar->numOfMeetings; index++)
+    {
+        free((calendar->meetings)[index]);
+    }
+    free(calendar->meetings);
+}
+
+void DestroyAD(pCalendar *calendar)
+{
     if (calendar == NULL || (*calendar) == NULL)
     {
         return;
     }
-
-    for (index = 0; index < (*calendar)->numOfMeetings; index++)
-    {
-        free(((*calendar)->meetings)[index]);
-    }
-    free((*calendar)->meetings);
+    FreeMeetings(*calendar);
     free(*calendar);
     *calendar == NULL;
 }
