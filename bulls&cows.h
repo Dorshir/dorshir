@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <string.h>
-#define TRUE 1
-#define FALSE 0
+
 #define BOARD_SIZE 4
+
+#define FALSE 0
+#define TRUE 1
+
 #define MISS 0
 #define BULL 1
 #define COW 2

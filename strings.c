@@ -1,4 +1,4 @@
-#include "abc.h"
+#include "strings.h"
 #define SET_SIZE 256
 
 int CheckInputStrStr(char *str1, char *str2)
