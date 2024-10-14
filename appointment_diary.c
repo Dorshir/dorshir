@@ -1,11 +1,34 @@
 #include "appointment_diary.h"
 
-void SortMeetings(pMeeting *meetings)
+void Swap(pMeeting *m1, pMeeting *m2)
 {
-    /*  SORT BY BEGIN TIME */
+    pMeeting temp = *m1;
+    *m1 = *m2;
+    *m2 = temp;
 }
 
-int BinarySearch(pMeeting array[], int begin, int length)
+void SortMeetings(pMeeting *meetings, int numOfMeetings)
+{
+    int i, j;
+
+    if (meetings == NULL)
+    {
+        return;
+    }
+
+    for (i = 0; i < numOfMeetings - 1; i++)
+    {
+        for (j = 0; j < numOfMeetings - i - 1; j++)
+        {
+            if (meetings[j]->begin > meetings[j + 1]->begin)
+            {
+                Swap(&meetings[j], &meetings[j + 1]);
+            }
+        }
+    }
+}
+
+int BinarySearch(pMeeting *meetings, float begin, int length)
 {
     int low = 0;
     int high = length - 1;
@@ -14,10 +37,10 @@ int BinarySearch(pMeeting array[], int begin, int length)
     {
         mid = low + (high - low) / 2;
 
-        if (begin == array[mid]->begin)
+        if (begin == (meetings)[mid]->begin)
             return mid;
 
-        if (begin > array[mid]->begin)
+        if (begin > meetings[mid]->begin)
             low = mid + 1;
 
         else
@@ -36,9 +59,34 @@ void PrintMeeting(pMeeting meeting)
     printf("Meeting begin time: %f\nMeeting end time: %f\nMeeting room: %d\n", meeting->begin, meeting->end, meeting->room);
 }
 
-Calander *CreateAD(int meetingsSize, int blockSize)
+pCalendar CreateAD(int meetingsSize, int blockSize)
 {
-    return NULL;
+    pCalendar newAD;
+    pMeeting *meetings;
+
+    if (meetingsSize == 0 && blockSize == 0)
+    {
+        return NULL;
+    }
+
+    newAD = (pCalendar)malloc(sizeof(Calendar));
+    if (newAD == NULL)
+    {
+        return NULL;
+    }
+
+    meetings = (pMeeting *)malloc(meetingsSize * sizeof(pMeeting));
+    if (meetings == NULL)
+    {
+        return NULL;
+    }
+
+    newAD->meetings = meetings;
+    newAD->blockSize = blockSize;
+    newAD->meetingsSize = meetingsSize;
+    newAD->numOfMeetings = 0;
+
+    return newAD;
 }
 
 pMeeting CreateMeeting(float begin, float end, int room)
@@ -61,88 +109,120 @@ pMeeting CreateMeeting(float begin, float end, int room)
     return newMeeting;
 }
 
-pMeeting FindMeeting(pCalander calander, int begin)
+pMeeting FindMeeting(pCalendar calendar, float begin)
 {
     pMeeting foundMeeting;
     int index;
 
-    if (begin < MEETING_BEGIN_BOUNDARY || begin > MEETING_END_BOUNDARY || calander == NULL || calander->meetings == NULL)
+    if (begin < MEETING_BEGIN_BOUNDARY || begin > MEETING_END_BOUNDARY || calendar == NULL || calendar->meetings == NULL)
     {
         foundMeeting = NULL;
     }
 
-    index = BinarySearch(calander->meetings, begin, calander->meetingsSize);
+    index = BinarySearch((calendar->meetings), begin, calendar->numOfMeetings);
+
     if (index == -1)
     {
         foundMeeting = NULL;
     }
     else
     {
-        foundMeeting = (calander->meetings)[index];
+        foundMeeting = (calendar->meetings)[index];
     }
 
     return foundMeeting;
 }
 
-int InsertMeeting(pCalander calander, pMeeting meeting)
+int IsOverlap(pCalendar calendar, float begin, float end)
 {
-    int *temp;
+    int result = FALSE;
+    int index;
+    pMeeting currMeeting;
+    for (index = 0; index < calendar->numOfMeetings; index++)
+    {
+        currMeeting = calendar->meetings[index];
+        if (begin < currMeeting->end && end > currMeeting->begin)
+        {
+            return TRUE;
+        }
+    }
+    return result;
+}
 
-    if (meeting->begin < MEETING_BEGIN_BOUNDARY || meeting->end > MEETING_END_BOUNDARY || meeting->begin >= meeting->end || calander == NULL || calander->meetings == NULL || meeting == NULL)
+int InsertMeeting(pCalendar calendar, pMeeting meeting)
+{
+    pMeeting *temp;
+    int newSize;
+    int overlap;
+
+    if (calendar == NULL || calendar->meetings == NULL || meeting == NULL)
+    {
+        return NULL_PTR_ERROR;
+    }
+
+    if (meeting->begin < MEETING_BEGIN_BOUNDARY || meeting->end > MEETING_END_BOUNDARY || meeting->begin >= meeting->end)
     {
         return INSERT_FAILED;
     }
 
-    if (calander->numOfMeetings == calander->meetingsSize)
+    if (IsOverlap(calendar, meeting->begin, meeting->end))
     {
-        if (calander->blockSize == 0)
+        return OVERLAP;
+    }
+
+    if (calendar->numOfMeetings == calendar->meetingsSize)
+    {
+        if (calendar->blockSize == 0)
         {
             return OVERFLOW;
         }
 
-        /* realoc... */
-    }
-    else
-    {
-        calander->meetings[calander->numOfMeetings] = meeting;
-        calander->numOfMeetings++;
-        return OK;
+        newSize = calendar->meetingsSize + calendar->blockSize;
+        temp = realloc(calendar->meetings, newSize * sizeof(pMeeting));
+        if (temp == NULL)
+        {
+            return REALLOC_FAILED;
+        }
+        calendar->meetings = temp;
+        calendar->meetingsSize = newSize;
     }
 
-    SortMeetings(calander->meetings);
+    calendar->meetings[calendar->numOfMeetings] = meeting;
+    calendar->numOfMeetings++;
+
+    SortMeetings(calendar->meetings, calendar->numOfMeetings);
 
     return OK;
 }
 
-int RemoveMeeting(pCalander calander, int begin)
+int RemoveMeeting(pCalendar calendar, float begin)
 {
-    int index = -1;
-
-    if (calander == NULL || calander->meetings == NULL)
+    pMeeting foundMeeting;
+    if (calendar == NULL || calendar->meetings == NULL)
     {
         return NULL_PTR_ERROR;
     }
-    if (calander->numOfMeetings == 0)
+    if (calendar->numOfMeetings == 0)
     {
         return UNDERFLOW;
     }
 
-    index = FindMeeting(calander, begin);
-    if (index == -1)
+    foundMeeting = FindMeeting(calendar, begin);
+    if (foundMeeting == NULL)
     {
         return NOT_FOUND;
     }
-
-    pMeeting foundMeeting = (calander->meetings)[index];
+    foundMeeting->begin = MEETING_END_BOUNDARY + 1;
+    SortMeetings(calendar->meetings, calendar->numOfMeetings);
     free(foundMeeting);
 
     foundMeeting = NULL;
-    calander->numOfMeetings--;
+    calendar->numOfMeetings--;
 
     return OK;
 }
 
-int PrintAD(pCalander AD)
+int PrintAD(pCalendar AD)
 {
     int index;
     if (AD == NULL || AD->meetings == NULL)
@@ -159,13 +239,19 @@ int PrintAD(pCalander AD)
     return OK;
 }
 
-void DestroyAD(pCalander *calander)
+void DestroyAD(pCalendar *calendar)
 {
-    if (calander == NULL || (*calander) == NULL)
+    int index;
+    if (calendar == NULL || (*calendar) == NULL)
     {
         return;
     }
-    free((*calander)->meetings);
-    free(*calander);
-    *calander == NULL;
+
+    for (index = 0; index < (*calendar)->numOfMeetings; index++)
+    {
+        free(((*calendar)->meetings)[index]);
+    }
+    free((*calendar)->meetings);
+    free(*calendar);
+    *calendar == NULL;
 }

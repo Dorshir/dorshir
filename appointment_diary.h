@@ -2,6 +2,7 @@
 #define __appointment_diary__
 
 #include <stdlib.h>
+#include <stdio.h>
 #define MEETING_BEGIN_BOUNDARY 0.0
 #define MEETING_END_BOUNDARY 23.99
 #define OK 1
@@ -9,8 +10,12 @@
 #define UNDERFLOW -2
 #define REALLOC_FAILED -3
 #define OVERFLOW -4
-#define NOT_FOUND -1
-#define INSERT_FAILED -1
+#define NOT_FOUND -5
+#define INSERT_FAILED -6
+#define OVERLAP -7
+
+#define FALSE 0
+#define TRUE 1
 
 typedef struct Meeting_t
 {
@@ -20,27 +25,27 @@ typedef struct Meeting_t
 
 } Meeting, *pMeeting;
 
-typedef struct Calander_t
+typedef struct Calendar_t
 {
     Meeting **meetings;
     int numOfMeetings;
     int meetingsSize;
     int blockSize;
 
-} Calander, *pCalander;
+} Calendar, *pCalendar;
 
-pCalander CreateAD(int meetingsSize, int blockSize);
+pCalendar CreateAD(int meetingsSize, int blockSize);
 
 pMeeting CreateMeeting(float begin, float end, int room);
 
-pMeeting FindMeeting(pCalander calander, int begin);
+pMeeting FindMeeting(pCalendar calendar, float begin);
 
-int InsertMeeting(pMeeting meeting);
+int InsertMeeting(pCalendar calendar, pMeeting meeting);
 
-int RemoveMeeting(pCalander calander, int begin);
+int RemoveMeeting(pCalendar calendar, float begin);
 
-int PrintAD(pCalander AD);
+int PrintAD(pCalendar AD);
 
-void DestroyAD(pCalander *calander);
+void DestroyAD(pCalendar *calendar);
 
 #endif /* __appointment_diary__ */
