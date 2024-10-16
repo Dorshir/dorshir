@@ -6,6 +6,8 @@
 #include <limits.h>
 #include <ctype.h>
 #include <string.h>
+#define INITIAL_AVG_LINE_SIZE 80
+#define MAX_LINE_LENGTH 1024
 
 
 void Wc(char *fileName);

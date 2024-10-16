@@ -224,7 +224,7 @@ int main()
 
     // DestroyAD(&calendar);
 
-    Tail("persons.txt", 100);
+    Wc("persons.txt");
 
     return 0;
 }

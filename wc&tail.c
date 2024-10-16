@@ -1,5 +1,34 @@
 #include "wc&tail.h"
 
+void UpdateCounters(char c, int *numOfLines, int *numOfWords)
+{
+    if (isspace(c))
+    {
+        if (c == '\n')
+        {
+            ++(*numOfLines);
+        }
+        ++(*numOfWords);
+    }
+}
+
+void WalkTheLine(char *line, int *numOfLines, int *numOfWords)
+{
+    char c;
+    int index = 0;
+    if (numOfLines == NULL || numOfWords == NULL || line == NULL)
+    {
+        return;
+    }
+
+    c = line[index];
+    while (c != '\0')
+    {
+        UpdateCounters(c, numOfLines, numOfWords);
+        c = line[++index];
+    }
+}
+
 void Wc(char *fileName)
 {
     FILE *fp;
@@ -7,6 +36,13 @@ void Wc(char *fileName)
     int numOfWords = 0;
     int numOfLines = 0;
     char c;
+    int index;
+    char line[MAX_LINE_LENGTH];
+
+    if (fileName == NULL)
+    {
+        return;
+    }
 
     fp = fopen(fileName, "r");
     if (fp == NULL)
@@ -14,36 +50,15 @@ void Wc(char *fileName)
         return;
     }
 
-    while ((c = fgetc(fp)) != EOF)
+    while (fgets(line, MAX_LINE_LENGTH, fp) != NULL)
     {
-        if (isspace(c))
-        {
-            if (c == '\n')
-            {
-                numOfLines++;
-            }
-            numOfWords++;
-            c = fgetc(fp);
-            while (isspace(c))
-            {
-                if (c == '\n')
-                {
-                    numOfLines++;
-                }
-                c = fgetc(fp);
-            }
-        }
+        WalkTheLine(line, &numOfLines, &numOfWords);
     }
+
     numOfChars = ftell(fp);
     fclose(fp);
     printf(" %d  %d %d %s\n", numOfLines, numOfWords, numOfChars, fileName);
 }
-
-#include "wc&tail.h"
-#include <string.h>
-
-#define INITIAL_AVG_LINE_SIZE 60 // Starting average line size
-#define MAX_LINE_LENGTH 1024     // Maximum line length to read
 
 void Tail(const char *fileName, int n)
 {
@@ -79,22 +94,16 @@ void Tail(const char *fileName, int n)
     }
 
     fileSize = ftell(fp);
-    if (fileSize == -1)
+    if (fileSize >= 0)
     {
         fclose(fp);
         return;
     }
 
-    if (fileSize == 0)
-    {
-        fclose(fp);
-        return;
-    }
 
     positions = malloc(n * sizeof(long));
     if (positions == NULL)
     {
-        perror("Memory allocation failed");
         fclose(fp);
         return;
     }
