@@ -88,10 +88,11 @@ pCalendar CreateAD(int meetingsSize, int blockSize)
     return newAD;
 }
 
-pMeeting CreateMeeting(float begin, float end, int room)
+pMeeting CreateMeeting(float begin, float end, Room room, Participant *parts, int numOfParts)
 {
     pMeeting newMeeting;
-    if (begin >= end || end > MEETING_END_BOUNDARY || begin < MEETING_BEGIN_BOUNDARY)
+
+    if (begin >= end || end > MEETING_END_BOUNDARY || begin < MEETING_BEGIN_BOUNDARY || parts == NULL)
     {
         return NULL;
     }
@@ -104,6 +105,16 @@ pMeeting CreateMeeting(float begin, float end, int room)
     newMeeting->begin = begin;
     newMeeting->end = end;
     newMeeting->room = room;
+    newMeeting->numOfParts = numOfParts;
+
+    newMeeting->participants = (Participant *)malloc(numOfParts * sizeof(Participant));
+    if (newMeeting->participants == NULL)
+    {
+        free(newMeeting);
+        return NULL;
+    }
+
+    memcpy(newMeeting->participants, parts, numOfParts * sizeof(Participant));
 
     return newMeeting;
 }
@@ -132,35 +143,34 @@ pMeeting FindMeeting(pCalendar calendar, float begin)
     return foundMeeting;
 }
 
-Bool TimerOverlap(pMeeting newMeeting, pMeeting currMeeting)
+Bool TimeOverlap(pMeeting newMeeting, pMeeting currMeeting)
 {
-    Bool result = FALSE;
-    if (newMeeting->begin > currMeeting->begin && newMeeting->end < currMeeting->end)
-    {
-        result = TRUE;
-    }
-    return result;
+    return !(newMeeting->end <= currMeeting->begin || newMeeting->begin >= currMeeting->end);
 }
 
-// Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting)
-// {
-//     Bool result = FALSE;
-//     int index1;
-//     int index2;
-
-//     for(index1 = 0; index1 < newMeeting->numOfPart; index1++)
-//     if ()
-//     {
-//         result = TRUE;
-//     }
-//     return result;
-// }
+Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting)
+{
+    int index1;
+    int index2;
+    for (index1 = 0; index1 < newMeeting->numOfParts; index1++)
+    {
+        for (index2 = 0; index2 < currMeeting->numOfParts; index2++)
+        {
+            if (newMeeting->participants[index1] == currMeeting->participants[index2])
+            {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
 
 Bool RoomOverlap(pMeeting newMeeting, pMeeting currMeeting)
 {
+    return newMeeting->room == currMeeting->room;
 }
 
-Status IsOverlap(pCalendar calendar, pMeeting meeting)
+Status IsOverlap(pCalendar calendar, pMeeting newMeeting)
 {
     int result = FALSE;
     int timeOverlap;
@@ -172,14 +182,15 @@ Status IsOverlap(pCalendar calendar, pMeeting meeting)
     for (index = 0; index < calendar->numOfMeetings; index++)
     {
         currMeeting = calendar->meetings[index];
-        // timeOverlap = TimeOverlap();
+        timeOverlap = TimeOverlap(newMeeting, currMeeting);
         if (timeOverlap)
         {
-            // partOverlap = PartOverlap();
-            // roomOverlap = RoomOverlap();
-            if (meeting->room == currMeeting->room || partOverlap)
+            partOverlap = PartOverlap(newMeeting, currMeeting);
+            roomOverlap = RoomOverlap(newMeeting, currMeeting);
+            if (roomOverlap || partOverlap)
             {
-                return TRUE;
+                result = TRUE;
+                break;
             }
         }
     }
@@ -210,6 +221,7 @@ Status InsertMeeting(pCalendar calendar, pMeeting meeting)
     int newSize;
     int inputCheck;
 
+    inputCheck = CheckInputInsert(calendar, meeting);
     if (inputCheck != OK)
     {
         return inputCheck;
@@ -300,6 +312,7 @@ void FreeMeetings(pCalendar calendar)
     int index;
     for (index = 0; index < calendar->numOfMeetings; index++)
     {
+        free(calendar->meetings[index]->participants);
         free((calendar->meetings)[index]);
     }
     free(calendar->meetings);

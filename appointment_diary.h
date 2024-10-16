@@ -3,54 +3,13 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #define MEETING_BEGIN_BOUNDARY 0.0
 #define MEETING_END_BOUNDARY 23.99
 
 /*******************  Should Add Doc *************************/
 
-typedef struct Meeting_t
-{
-    float begin;
-    float end;
-    int room;
-    int numOfParts;
-
-} Meeting, *pMeeting;
-
-typedef struct Calendar_t
-{
-    Meeting **meetings;
-    int numOfMeetings;
-    int meetingsSize;
-    int blockSize;
-
-} Calendar, *pCalendar;
-
-typedef enum
-{
-    OVERLAP = -6,
-    INSERT_FAILED,
-    NOT_FOUND,
-    OVERFLOW,
-    REALLOC_FAILED,
-    UNDERFLOW,
-    NULL_PTR_ERROR,
-    OK
-} Status;
-
-typedef enum
-{
-    JERUSALEM,
-    PARIS,
-    LONDON,
-    MADRID,
-    KYIV,
-    ROME,
-    VIENNA,
-    COPENHAGEN
-} Room;
-
-typedef enum
+typedef enum Participant
 {
     ALICE,
     BOB,
@@ -62,13 +21,57 @@ typedef enum
     HARRY
 } Participant;
 
-typedef enum{
+typedef struct Meeting_t
+{
+    float begin;
+    float end;
+    int room;
+    int numOfParts;
+    Participant *participants;
+} Meeting, *pMeeting;
+
+typedef struct Calendar_t
+{
+    Meeting **meetings;
+    int numOfMeetings;
+    int meetingsSize;
+    int blockSize;
+
+} Calendar, *pCalendar;
+
+typedef enum Status
+{
+    OVERLAP = -6,
+    INSERT_FAILED,
+    NOT_FOUND,
+    OVERFLOW,
+    REALLOC_FAILED,
+    UNDERFLOW,
+    NULL_PTR_ERROR,
+    OK
+} Status;
+
+typedef enum Room
+{
+    JERUSALEM,
+    PARIS,
+    LONDON,
+    MADRID,
+    KYIV,
+    ROME,
+    VIENNA,
+    COPENHAGEN
+} Room;
+
+typedef enum Bool
+{
     FALSE,
     TRUE
-}Bool;
+} Bool;
+
 pCalendar CreateAD(int meetingsSize, int blockSize);
 
-pMeeting CreateMeeting(float begin, float end, int room);
+pMeeting CreateMeeting(float begin, float end, Room room, Participant *parts, int numOfParts);
 
 pMeeting FindMeeting(pCalendar calendar, float begin);
 
