@@ -132,17 +132,55 @@ pMeeting FindMeeting(pCalendar calendar, float begin)
     return foundMeeting;
 }
 
-Status IsOverlap(pCalendar calendar, float begin, float end)
+Bool TimerOverlap(pMeeting newMeeting, pMeeting currMeeting)
+{
+    Bool result = FALSE;
+    if (newMeeting->begin > currMeeting->begin && newMeeting->end < currMeeting->end)
+    {
+        result = TRUE;
+    }
+    return result;
+}
+
+// Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting)
+// {
+//     Bool result = FALSE;
+//     int index1;
+//     int index2;
+
+//     for(index1 = 0; index1 < newMeeting->numOfPart; index1++)
+//     if ()
+//     {
+//         result = TRUE;
+//     }
+//     return result;
+// }
+
+Bool RoomOverlap(pMeeting newMeeting, pMeeting currMeeting)
+{
+}
+
+Status IsOverlap(pCalendar calendar, pMeeting meeting)
 {
     int result = FALSE;
+    int timeOverlap;
+    int partOverlap;
+    int roomOverlap;
     int index;
     pMeeting currMeeting;
+
     for (index = 0; index < calendar->numOfMeetings; index++)
     {
         currMeeting = calendar->meetings[index];
-        if (begin < currMeeting->end && end > currMeeting->begin)
+        // timeOverlap = TimeOverlap();
+        if (timeOverlap)
         {
-            return TRUE;
+            // partOverlap = PartOverlap();
+            // roomOverlap = RoomOverlap();
+            if (meeting->room == currMeeting->room || partOverlap)
+            {
+                return TRUE;
+            }
         }
     }
     return result;
@@ -159,7 +197,7 @@ Status CheckInputInsert(pCalendar calendar, pMeeting meeting)
     {
         check = INSERT_FAILED;
     }
-    else if (IsOverlap(calendar, meeting->begin, meeting->end))
+    else if (IsOverlap(calendar, meeting))
     {
         check = OVERLAP;
     }
@@ -170,7 +208,6 @@ Status InsertMeeting(pCalendar calendar, pMeeting meeting)
 {
     pMeeting *temp;
     int newSize;
-    int overlap;
     int inputCheck;
 
     if (inputCheck != OK)

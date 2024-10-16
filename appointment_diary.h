@@ -5,14 +5,15 @@
 #include <stdio.h>
 #define MEETING_BEGIN_BOUNDARY 0.0
 #define MEETING_END_BOUNDARY 23.99
-#define FALSE 0
-#define TRUE 1
+
+/*******************  Should Add Doc *************************/
 
 typedef struct Meeting_t
 {
     float begin;
     float end;
     int room;
+    int numOfParts;
 
 } Meeting, *pMeeting;
 
@@ -27,16 +28,44 @@ typedef struct Calendar_t
 
 typedef enum
 {
-    OVERLAP = -7,
+    OVERLAP = -6,
     INSERT_FAILED,
     NOT_FOUND,
     OVERFLOW,
     REALLOC_FAILED,
     UNDERFLOW,
     NULL_PTR_ERROR,
-    OK = 1
+    OK
 } Status;
 
+typedef enum
+{
+    JERUSALEM,
+    PARIS,
+    LONDON,
+    MADRID,
+    KYIV,
+    ROME,
+    VIENNA,
+    COPENHAGEN
+} Room;
+
+typedef enum
+{
+    ALICE,
+    BOB,
+    ROBERT,
+    EMILY,
+    GEORGE,
+    ANGELINA,
+    MATHIEW,
+    HARRY
+} Participant;
+
+typedef enum{
+    FALSE,
+    TRUE
+}Bool;
 pCalendar CreateAD(int meetingsSize, int blockSize);
 
 pMeeting CreateMeeting(float begin, float end, int room);
@@ -49,6 +78,6 @@ Status RemoveMeeting(pCalendar calendar, float begin);
 
 Status PrintAD(pCalendar AD);
 
-Status DestroyAD(pCalendar *calendar);
+void DestroyAD(pCalendar *calendar);
 
 #endif /* __appointment_diary__ */
