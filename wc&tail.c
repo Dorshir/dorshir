@@ -16,12 +16,8 @@ void WalkTheLine(char *line, int *numOfLines, int *numOfWords)
 {
     char c;
     int index = 0;
-    if (numOfLines == NULL || numOfWords == NULL || line == NULL)
-    {
-        return;
-    }
-
     c = line[index];
+
     while (c != '\0')
     {
         UpdateCounters(c, numOfLines, numOfWords);
@@ -29,154 +25,84 @@ void WalkTheLine(char *line, int *numOfLines, int *numOfWords)
     }
 }
 
-void Wc(char *fileName)
+Status Wc(const char *fileName)
 {
     FILE *fp;
-    int numOfChars = 0;
-    int numOfWords = 0;
-    int numOfLines = 0;
     char c;
     int index;
     char line[MAX_LINE_LENGTH];
-
-    if (fileName == NULL)
-    {
-        return;
-    }
+    int numOfChars = 0;
+    int numOfWords = 0;
+    int numOfLines = 0;
 
     fp = fopen(fileName, "r");
     if (fp == NULL)
     {
-        return;
+        return FILE_OPEN_FAILED;
     }
 
     while (fgets(line, MAX_LINE_LENGTH, fp) != NULL)
     {
         WalkTheLine(line, &numOfLines, &numOfWords);
     }
-
     numOfChars = ftell(fp);
-    fclose(fp);
+
     printf(" %d  %d %d %s\n", numOfLines, numOfWords, numOfChars, fileName);
+
+    fclose(fp);
+    return OK;
 }
 
-void Tail(const char *fileName, int n)
+long GetFileSize(FILE *fp)
 {
-    long fileSize;
-    long estimatedLineLength = INITIAL_AVG_LINE_SIZE;
-    long estimatedOffset = n * estimatedLineLength;
-    long offset = estimatedOffset;
-    long *positions;
-    char temp[MAX_LINE_LENGTH];
-    int index = 0;
-    int cnt;
-    int startIndex;
-    int lineCount = 0;
-    long pos;
-    FILE *fp;
-
-    if (n <= 0)
-    {
-        fprintf(stderr, "Invalid number of lines: %d\n", n);
-        return;
-    }
-
-    fp = fopen(fileName, "r");
-    if (fp == NULL)
-    {
-        return;
-    }
-
+    long result;
     if (fseek(fp, 0, SEEK_END) != 0)
     {
-        fclose(fp);
-        return;
-    }
-
-    fileSize = ftell(fp);
-    if (fileSize >= 0)
-    {
-        fclose(fp);
-        return;
-    }
-
-
-    positions = malloc(n * sizeof(long));
-    if (positions == NULL)
-    {
-        fclose(fp);
-        return;
-    }
-
-    while (1)
-    {
-        lineCount = 0;
-        index = 0;
-
-        /*Adjust offset if it goes beyond the file start*/
-        if (offset > fileSize)
-            offset = fileSize;
-
-        if (fseek(fp, -offset, SEEK_END) != 0)
-        {
-            break;
-        }
-
-        /* Skip the first partial line if not at the start of the file */
-        if (offset != fileSize)
-        {
-            if (fgets(temp, MAX_LINE_LENGTH, fp) == NULL)
-            {
-                /* EOF reached unexpectedly */
-                break;
-            }
-        }
-
-        while (1)
-        {
-            pos = ftell(fp);
-            if (fgets(temp, MAX_LINE_LENGTH, fp) == NULL)
-            {
-                /* EOF reached unexpectedly */
-                break;
-            }
-
-            positions[index] = pos;
-            index = (index + 1) % n;
-            lineCount++;
-
-            if (lineCount >= n)
-            {
-                /* Enough lines */
-                break;
-            }
-        }
-
-        /* Check if we have read enough lines or reached the start of the file */
-        if (lineCount >= n || offset == fileSize)
-        {
-            break;
-        }
-
-        /* Adjust offset */
-        estimatedLineLength += 5;
-        offset = n * estimatedLineLength;
-    }
-
-    /* Determine the correct starting index in the circular buffer */
-    if (lineCount < n)
-    {
-        startIndex = 0;
-        n = lineCount;
+        result = -1;
     }
     else
     {
-        startIndex = index % n;
+        result = ftell(fp);
+    }
+    return result;
+}
+
+void ShapeNumberOfLines(int *desiredNumberOfLines)
+{
+    if (*desiredNumberOfLines > MAX_LINES_ALLOWED)
+    {
+        *desiredNumberOfLines = MAX_LINES_ALLOWED;
+    }
+}
+
+int SafeMod(int a, int b)
+{
+    int result = a % b;
+    if (result < 0)
+    {
+        result += b;
+    }
+    return result;
+}
+
+void PrintLines(FILE *fp, long *positions, int desiredNumberOfLines, int index, int lineCount)
+{
+    char temp[MAX_LINE_LENGTH];
+    int linesToPrint = MIN(lineCount, desiredNumberOfLines);
+    int startIndex;
+
+    if (lineCount < desiredNumberOfLines)
+    {
+        startIndex = 0;
+    }
+    else
+    {
+        startIndex = index % desiredNumberOfLines;
     }
 
-    for (cnt = 0; cnt < n; cnt++)
+    for (int cnt = 0; cnt < linesToPrint; cnt++)
     {
-        int pos_index = (startIndex + cnt) % n;
+        int pos_index = SafeMod(startIndex + cnt, desiredNumberOfLines);
         if (fseek(fp, positions[pos_index], SEEK_SET) != 0)
         {
             break;
@@ -186,7 +112,126 @@ void Tail(const char *fileName, int n)
             printf("%s", temp);
         }
     }
+}
+
+int SafeModIndex(int index, int desiredNumberOfLines, int lineCount)
+{
+    int tempIndex = index - MIN(lineCount, desiredNumberOfLines) - 1;
+    if (tempIndex < 0)
+    {
+        tempIndex += desiredNumberOfLines;
+    }
+    return SafeMod(tempIndex, desiredNumberOfLines);
+}
+
+void FillPosition(long *positions, long pos, int *index, int desiredNumberOfLines, int *lineCount)
+{
+    positions[*index] = pos;
+    *index = (*index + 1) % desiredNumberOfLines;
+    ++(*lineCount);
+}
+
+void SkipFirstPartial(FILE *fp, long offset, long fileSize, char *temp)
+{
+    long pos;
+    if (offset != fileSize)
+    {
+        /* EOF reached */
+        if (fgets(temp, MAX_LINE_LENGTH, fp) == NULL)
+        {
+            return;
+        }
+    }
+}
+
+void AdjustOffset(long *estimatedLineLength, long *estimatedOffset, long *offset, long fileSize, int desiredNumberOfLines, int lineCount)
+{
+    *estimatedLineLength = (lineCount > 0) ? (*offset / lineCount) : INITIAL_AVG_LINE_SIZE;
+    *estimatedOffset = desiredNumberOfLines * (*estimatedLineLength);
+    *offset = (*estimatedOffset < fileSize) ? *estimatedOffset : fileSize;
+}
+
+Status Tail(const char *fileName, int desiredNumberOfLines)
+{
+    long fileSize;
+    long *positions;
+    char temp[MAX_LINE_LENGTH];
+    long pos;
+    FILE *fp;
+    long estimatedLineLength;
+    long estimatedOffset;
+    long offset;
+    int lineCount = 0;
+    int index = 0;
+
+    if (desiredNumberOfLines <= 0)
+    {
+        return INVALID_NUMBER_OF_LINES;
+    }
+
+    fp = fopen(fileName, "r");
+    if (fp == NULL)
+    {
+        return FILE_OPEN_FAILED;
+    }
+
+    fileSize = GetFileSize(fp);
+    if (fileSize <= 0)
+    {
+        fclose(fp);
+        return EMPTY_FILE;
+    }
+
+    ShapeNumberOfLines(&desiredNumberOfLines);
+
+    positions = malloc(desiredNumberOfLines * sizeof(long));
+    if (positions == NULL)
+    {
+        fclose(fp);
+        return ALLOCATE_MEMORY_FAILED;
+    }
+
+    index = 0;
+    lineCount = 0;
+
+    while (1)
+    {
+        AdjustOffset(&estimatedLineLength, &estimatedOffset, &offset, fileSize, desiredNumberOfLines, lineCount);
+
+        /* Find position by -offset from the end of the file */
+        if (fseek(fp, -offset, SEEK_END) != 0)
+        {
+            break;
+        }
+        SkipFirstPartial(fp, offset, fileSize, temp);
+
+        while (1)
+        {
+            pos = ftell(fp);
+            /* Break if current position reached the boundary gap position [........| V V V ] (meaning the beggining of the already found lines) */
+            if (lineCount >= desiredNumberOfLines && pos == positions[SafeModIndex(index, desiredNumberOfLines, lineCount)])
+            {
+                break;
+            }
+
+            if (fgets(temp, MAX_LINE_LENGTH, fp) == NULL)
+            {
+                /* EOF reached */
+                break;
+            }
+            FillPosition(positions, pos, &index, desiredNumberOfLines, &lineCount);
+        }
+
+        /* Check if we have read enough lines or reached the start of the file */
+        if (lineCount >= desiredNumberOfLines || offset == fileSize)
+        {
+            break;
+        }
+    }
+
+    PrintLines(fp, positions, desiredNumberOfLines, index, lineCount);
 
     fclose(fp);
     free(positions);
+    return OK;
 }
