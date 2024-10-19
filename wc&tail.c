@@ -1,26 +1,38 @@
 #include "wc&tail.h"
 
-void UpdateCounters(char c, int *numOfLines, int *numOfWords)
+void UpdateCounters(char c, int *numOfLines, int *numOfWords, Bool *inWord)
 {
+    /* Outside of a word, should pass all of the blanks */
     if (isspace(c))
     {
         if (c == '\n')
         {
             ++(*numOfLines);
         }
-        ++(*numOfWords);
+        *inWord = FALSE;
+    }
+    /* Inside of a word */
+    else
+    {
+        /* Count a word once then walk through it without counting */
+        if (*inWord == FALSE)
+        {
+            ++(*numOfWords);
+            *inWord = TRUE;
+        }
     }
 }
 
 void WalkTheLine(char *line, int *numOfLines, int *numOfWords)
 {
     char c;
+    Bool inWord = FALSE;
     int index = 0;
     c = line[index];
 
     while (c != '\0')
     {
-        UpdateCounters(c, numOfLines, numOfWords);
+        UpdateCounters(c, numOfLines, numOfWords, &inWord);
         c = line[++index];
     }
 }

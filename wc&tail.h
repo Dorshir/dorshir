@@ -12,7 +12,7 @@
 #define MAX_LINES_ALLOWED 1000
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-typedef enum
+typedef enum Status
 {
     OK,
     FILE_OPEN_FAILED,
@@ -20,6 +20,12 @@ typedef enum
     EMPTY_FILE,
     ALLOCATE_MEMORY_FAILED
 } Status;
+
+typedef enum
+{
+    FALSE,
+    TRUE
+} Bool;
 
 /**
  * @brief   Prints the number of lines, words, letters in a given file.
@@ -45,4 +51,4 @@ Status Wc(const char *fileName);
  */
 Status Tail(const char *fileName, int desiredNumberOfLines);
 
-#endif;
+#endif

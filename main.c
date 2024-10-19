@@ -1,4 +1,4 @@
-#include "appointment_diary.c"
+// #include "appointment_diary.c"
 #include "wc&tail.c"
 
 int main()
@@ -231,7 +231,7 @@ int main()
     // PrintAD(calendar);
 
     // DestroyAD(&calendar);
-
-    Tail("main.c", 5);
+    Wc("main.c");
+    // Tail("main.c", 15);
     return 0;
 }
