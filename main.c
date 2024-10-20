@@ -1,17 +1,23 @@
-// #include "appointment_diary.c"
-#include "wc&tail.c"
+#include "appointment_diary.c"
 
 int main()
 {
-    // pCalendar calendar;
-    // pMeeting meeting;
-    // int result;
-    // int initialSize = 2;
-    // int blockSize = 2;
-    // Participant parts[] = {ALICE, BOB};
-    // Room room = ROME;
-    // int numOfParts = 2;
+    pCalendar calendar;
+    pMeeting meeting;
+    int result;
+    int initialSize = 2;
+    int blockSize = 2;
+    Participant parts[] = {ALICE, BOB};
+    Room room = ROME;
+    int numOfParts = 2;
 
+    // calendar = CreateAD(initialSize, blockSize);
+    // InsertMeeting(calendar, CreateMeeting(11.00, 12.00, room, parts, numOfParts));
+    // InsertMeeting(calendar, CreateMeeting(12.00, 13.00, room, parts, numOfParts));
+    calendar = LoadAD("AD.txt");
+    PrintAD(calendar);
+
+    
     // /* ------------------------------------------
     //    Test Case 1:
     //    Insertion When Number of Meetings Equals Size (Testing Reallocation)
@@ -231,7 +237,6 @@ int main()
     // PrintAD(calendar);
 
     // DestroyAD(&calendar);
-    Wc("main.c");
-    // Tail("main.c", 15);
+
     return 0;
 }

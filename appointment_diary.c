@@ -115,7 +115,6 @@ pMeeting CreateMeeting(float begin, float end, Room room, Participant *parts, in
     }
 
     memcpy(newMeeting->participants, parts, numOfParts * sizeof(Participant));
-
     return newMeeting;
 }
 
@@ -287,6 +286,175 @@ Status RemoveMeeting(pCalendar calendar, float begin)
     foundMeeting = NULL;
     calendar->numOfMeetings--;
 
+    return OK;
+}
+
+Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants)
+{
+    int index;
+    int participantId;
+    Participant *p;
+    if (numOfParts == 0)
+    {
+        return INVALID_PARTICIPANT_NUM;
+    }
+
+    *participants = (Participant *)malloc(numOfParts * sizeof(Participant));
+    if (*participants == NULL)
+    {
+        return ALLOCATE_MEMORY_FAILED;
+    }
+
+    for (index = 0; index < numOfParts; index++)
+    {
+        if (fscanf(fp, "%d", &participantId) != 1)
+        {
+            free(*participants);
+            return INVALID_PARTICIPANT_DATA;
+        };
+
+        if (participantId < ALICE || participantId > HARRY)
+        {
+            free(*participants);
+            return INVALID_PARTICIPANT_DATA;
+        }
+        (*participants)[index] = (Participant)participantId;
+    }
+    return OK;
+}
+
+Status ValidateRoom(int *room)
+{
+    if (*room < JERUSALEM || *room > COPENHAGEN)
+    {
+        return INVALID_ROOM_NUM;
+    }
+    return OK;
+}
+
+pMeeting ParseMeeting(FILE *fp)
+{
+    float begin;
+    float end;
+    int room;
+    int numOfParts;
+    Participant *participants = NULL;
+    pMeeting newMeeting = NULL;
+
+    if (fscanf(fp, "%f %f %d %d", &begin, &end, &room, &numOfParts) != 4)
+    {
+        return NULL;
+    }
+    if (ValidateRoom(&room) != OK)
+    {
+        return NULL;
+    }
+    if (ParseParticipants(fp, numOfParts, &participants) != OK)
+    {
+        return NULL;
+    };
+
+    newMeeting = CreateMeeting(begin, end, (Room)room, participants, numOfParts);
+    free(participants);
+    return newMeeting;
+}
+
+void DestroyMeeting(pMeeting meeting)
+{
+    free(meeting->participants);
+    free(meeting);
+}
+
+Status LoadMeetings(FILE *fp, pCalendar calendar)
+{
+    char line[MAX_LINE_LENGTH];
+    pMeeting newMeeting;
+    Status status;
+
+    while (1)
+    {
+        newMeeting = ParseMeeting(fp);
+        if (newMeeting == NULL)
+        {
+            if (feof(fp))
+            {
+                break;
+            }
+            else
+            {
+                return MEETING_PARSING_FAILED;
+            }
+        }
+        status = InsertMeeting(calendar, newMeeting);
+        if (status != OK)
+        {
+            DestroyMeeting(newMeeting);
+            return status;
+        }
+    }
+    return OK;
+}
+
+pCalendar LoadAD(const char *fileName)
+{
+    FILE *fp;
+    pCalendar calendar;
+    if ((fp = fopen(fileName, "r")) == NULL)
+    {
+        return NULL;
+    }
+
+    if (ftell(fp) < 0)
+    {
+        fclose(fp);
+        return NULL;
+    }
+
+    calendar = CreateAD(INITIAL_MEETINGS_SIZE, INITIAL_BLOCK_SIZE);
+    if (calendar == NULL)
+    {
+        fclose(fp);
+        return NULL;
+    }
+
+    if (LoadMeetings(fp, calendar) != OK)
+    {
+        calendar = NULL;
+    };
+
+    fclose(fp);
+    return calendar;
+}
+
+void MeetingToFile(FILE *fp, pMeeting meeting)
+{
+    int index = 0;
+    fprintf(fp, "%f ", meeting->begin);
+    fprintf(fp, "%f ", meeting->end);
+    fprintf(fp, "%d ", meeting->room);
+    fprintf(fp, "%d ", meeting->numOfParts);
+    for (index = 0; index < meeting->numOfParts; index++)
+    {
+        fprintf(fp, "%d ", meeting->participants[index]);
+    }
+    fprintf(fp, "\n");
+}
+
+Status SaveAD(pCalendar calendar, const char *fileName)
+{
+    FILE *fp;
+    int index;
+    if ((fp = fopen(fileName, "w")) == NULL)
+    {
+        return OPEN_FILE_FAILED;
+    }
+
+    for (index = 0; index < calendar->numOfMeetings; index++)
+    {
+        MeetingToFile(fp, calendar->meetings[index]);
+    }
+
+    fclose(fp);
     return OK;
 }
 
