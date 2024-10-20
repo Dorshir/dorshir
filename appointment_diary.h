@@ -154,8 +154,25 @@ Status InsertMeeting(pCalendar calendar, pMeeting meeting);
  */
 Status RemoveMeeting(pCalendar calendar, float begin);
 
+/**
+ * @brief Loads an appointment diary from a file.
+ *
+ * @param fileName The name of the file to load the appointment diary from.
+ *
+ * @return Pointer to the loaded appointment diary on success, or NULL on failure.
+ */
 pCalendar LoadAD(const char* fileName);
 
+/**
+ * @brief Saves the appointment diary to a file.
+ *
+ * @param calendar Pointer to the appointment diary to save.
+ * @param fileName The name of the file to save the appointment diary to.
+ *
+ * @return `OK` on success,
+ *         `NULL_PTR_ERROR` if a null pointer is provided,
+ *         `OPEN_FILE_FAILED` if the file cannot be opened for writing.
+ */
 Status SaveAD(pCalendar calendar, const char* fileName);
 
 /**
