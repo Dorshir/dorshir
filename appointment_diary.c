@@ -452,7 +452,7 @@ void MeetingToFile(FILE *fp, pMeeting meeting)
     fprintf(fp, "\n");
 }
 
-Status SaveAD(pCalendar calendar, const char *fileName)
+Status StoreAD(pCalendar calendar, const char *fileName)
 {
     FILE *fp;
     int index;

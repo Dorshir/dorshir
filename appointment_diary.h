@@ -193,7 +193,7 @@ Status LoadAD(pCalendar* calendar, char *fileName);
  *         `NULL_PTR_ERROR` if a null pointer is provided,
  *         `OPEN_FILE_FAILED` if the file cannot be opened for writing.
  */
-Status SaveAD(pCalendar calendar, const char* fileName);
+Status StoreAD(pCalendar calendar, const char* fileName);
 
 /**
  * @brief Prints all meetings in the appointment diary.
