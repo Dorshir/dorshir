@@ -2,7 +2,7 @@
 
 int main()
 {
-    pCalendar calendar;
+    pCalendar calendar = NULL;
     pMeeting meeting;
     int result;
     int initialSize = 2;
@@ -11,10 +11,10 @@ int main()
     Room room = ROME;
     int numOfParts = 2;
 
-    // calendar = CreateAD(initialSize, blockSize);
-    // InsertMeeting(calendar, CreateMeeting(11.00, 12.00, room, parts, numOfParts));
-    // InsertMeeting(calendar, CreateMeeting(12.00, 13.00, room, parts, numOfParts));
-    calendar = LoadAD("AD.txt");
+    calendar = CreateAD(initialSize, blockSize);
+    InsertMeeting(calendar, CreateMeeting(11.00, 12.00, room, parts, numOfParts));
+    InsertMeeting(calendar, CreateMeeting(12.00, 13.00, room, parts, numOfParts));
+    LoadAD(&calendar,"AD.txt");
     PrintAD(calendar);
 
     

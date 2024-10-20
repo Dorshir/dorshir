@@ -38,6 +38,9 @@ typedef enum Status
     MEETING_PARSING_FAILED,
     ALLOCATE_MEMORY_FAILED,
     INVALID_ROOM_NUM,
+    MEETING_CREATION_FAILED,
+    CALENDAR_CREATION_FAILED,
+    INVALID_FILE,
     OPEN_FILE_FAILED = -7,
     OVERLAP,
     INSERT_FAILED,
@@ -157,11 +160,28 @@ Status RemoveMeeting(pCalendar calendar, float begin);
 /**
  * @brief Loads an appointment diary from a file.
  *
+ * Loads an appointment diary from the specified file into the provided calendar.
+ * If the calendar already contains meetings, they will be destroyed and replaced with the new data.
+ *
+ * @param calendar Pointer to the appointment diary to load into.
  * @param fileName The name of the file to load the appointment diary from.
  *
- * @return Pointer to the loaded appointment diary on success, or NULL on failure.
+ * @return `OK` on successful loading.
+ *         `NULL_PTR_ERROR` if the `calendar` pointer is `NULL`.
+ *         `OPEN_FILE_FAILED` if the file cannot be opened.
+ *         `CALENDAR_CREATION_FAILED` if creating a new appointment diary fails.
+ *         `INVALID_PARTICIPANT_NUM` if the number of participants is invalid.
+ *         `INVALID_PARTICIPANT_DATA` if participant data is invalid.
+ *         `PARTICIPANTS_PARSING_FAILED` if parsing participants failed.
+ *         `INVALID_MEETING_DATA` if meeting data is invalid.
+ *         `MEETING_PARSING_FAILED` if parsing meeting failed.
+ *         `MEETING_CREATION_FAILED` if meeting creation failed.
+ *         `INVALID_ROOM_NUM` if the room number is invalid.
+ *         `OVERLAP` if meetings overlap.
+ *         `REALLOC_FAILED` if memory reallocation failed.
+ *         `ALLOCATE_MEMORY_FAILED` if memory allocation failed.
  */
-pCalendar LoadAD(const char* fileName);
+Status LoadAD(pCalendar* calendar, char *fileName);
 
 /**
  * @brief Saves the appointment diary to a file.

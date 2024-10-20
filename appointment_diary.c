@@ -323,57 +323,66 @@ Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants)
     return OK;
 }
 
-Status ValidateRoom(int *room)
+Status ValidateRoom(int room)
 {
-    if (*room < JERUSALEM || *room > COPENHAGEN)
+    if (room < JERUSALEM || room > COPENHAGEN)
     {
         return INVALID_ROOM_NUM;
     }
     return OK;
 }
 
-pMeeting ParseMeeting(FILE *fp)
+Status ParseMeeting(FILE *fp, pMeeting *newMeeting)
 {
     float begin;
     float end;
     int room;
     int numOfParts;
     Participant *participants = NULL;
-    pMeeting newMeeting = NULL;
+    *newMeeting = NULL;
 
     if (fscanf(fp, "%f %f %d %d", &begin, &end, &room, &numOfParts) != 4)
     {
-        return NULL;
+        return INVALID_MEETING_DATA;
     }
-    if (ValidateRoom(&room) != OK)
+    if (ValidateRoom(room) != OK)
     {
-        return NULL;
+        return INVALID_ROOM_NUM;
     }
     if (ParseParticipants(fp, numOfParts, &participants) != OK)
     {
-        return NULL;
-    };
+        return PARTICIPANTS_PARSING_FAILED;
+    }
 
-    newMeeting = CreateMeeting(begin, end, (Room)room, participants, numOfParts);
+    *newMeeting = CreateMeeting(begin, end, (Room)room, participants, numOfParts);
     free(participants);
-    return newMeeting;
+
+    if (*newMeeting == NULL)
+    {
+        return MEETING_CREATION_FAILED;
+    }
+
+    return OK;
 }
 
-void DestroyMeeting(pMeeting meeting)
+void DestroyMeeting(pMeeting *meeting)
 {
-    free(meeting->participants);
-    free(meeting);
+    if (meeting != NULL && *meeting != NULL)
+    {
+        free((*meeting)->participants);
+        free(*meeting);
+        *meeting = NULL;
+    }
 }
 
 Status LoadMeetings(FILE *fp, pCalendar calendar)
 {
-    char line[MAX_LINE_LENGTH];
-    pMeeting newMeeting;
-    Status status;
+    pMeeting newMeeting = NULL;
+    Status status = OK;
 
     while (1)
     {
-        newMeeting = ParseMeeting(fp);
+        status = ParseMeeting(fp, &newMeeting);
         if (newMeeting == NULL)
         {
             if (feof(fp))
@@ -382,48 +391,51 @@ Status LoadMeetings(FILE *fp, pCalendar calendar)
             }
             else
             {
-                return MEETING_PARSING_FAILED;
+                return status;
             }
         }
         status = InsertMeeting(calendar, newMeeting);
         if (status != OK)
         {
-            DestroyMeeting(newMeeting);
+            DestroyMeeting(&newMeeting);
             return status;
         }
+
+        newMeeting = NULL;
     }
     return OK;
 }
 
-pCalendar LoadAD(const char *fileName)
+Status LoadAD(pCalendar *calendar, char *fileName)
 {
     FILE *fp;
-    pCalendar calendar;
+    Status status = OK;
+
     if ((fp = fopen(fileName, "r")) == NULL)
     {
-        return NULL;
+        return OPEN_FILE_FAILED;
+    }
+    if (*calendar != NULL)
+    {
+        printf("Warning! The diary had meetings that were deleted and replaced with the new data.\n");
+        DestroyAD(calendar);
     }
 
-    if (ftell(fp) < 0)
+    *calendar = CreateAD(INITIAL_MEETINGS_SIZE, INITIAL_BLOCK_SIZE);
+    if (*calendar == NULL)
     {
         fclose(fp);
-        return NULL;
+        return CALENDAR_CREATION_FAILED;
     }
 
-    calendar = CreateAD(INITIAL_MEETINGS_SIZE, INITIAL_BLOCK_SIZE);
-    if (calendar == NULL)
+    status = LoadMeetings(fp, *calendar);
+    if (status != OK)
     {
-        fclose(fp);
-        return NULL;
+        DestroyAD(calendar);
     }
-
-    if (LoadMeetings(fp, calendar) != OK)
-    {
-        calendar = NULL;
-    };
 
     fclose(fp);
-    return calendar;
+    return status;
 }
 
 void MeetingToFile(FILE *fp, pMeeting meeting)
