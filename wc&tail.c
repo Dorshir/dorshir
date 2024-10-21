@@ -112,27 +112,20 @@ void PrintLines(FILE *fp, long *positions, int desiredNumberOfLines, int index, 
         startIndex = index % desiredNumberOfLines;
     }
 
-    for (int cnt = 0; cnt < linesToPrint; cnt++)
+    int pos_index = SafeMod(startIndex, desiredNumberOfLines);
+    if (fseek(fp, positions[pos_index], SEEK_SET) != 0)
     {
-        int pos_index = SafeMod(startIndex + cnt, desiredNumberOfLines);
-        if (fseek(fp, positions[pos_index], SEEK_SET) != 0)
-        {
-            break;
-        }
-        if (fgets(temp, MAX_LINE_LENGTH, fp) != NULL)
-        {
-            printf("%s", temp);
-        }
+        return;
+    }
+    while (fgets(temp, MAX_LINE_LENGTH, fp) != NULL)
+    {
+        printf("%s", temp);
     }
 }
 
 int SafeModIndex(int index, int desiredNumberOfLines, int lineCount)
 {
     int tempIndex = index - MIN(lineCount, desiredNumberOfLines) - 1;
-    if (tempIndex < 0)
-    {
-        tempIndex += desiredNumberOfLines;
-    }
     return SafeMod(tempIndex, desiredNumberOfLines);
 }
 
@@ -145,7 +138,6 @@ void FillPosition(long *positions, long pos, int *index, int desiredNumberOfLine
 
 void SkipFirstPartial(FILE *fp, long offset, long fileSize, char *temp)
 {
-    long pos;
     if (offset != fileSize)
     {
         /* EOF reached */
@@ -165,16 +157,16 @@ void AdjustOffset(long *estimatedLineLength, long *estimatedOffset, long *offset
 
 Status Tail(const char *fileName, int desiredNumberOfLines)
 {
+    FILE *fp;
     long fileSize;
     long *positions;
     char temp[MAX_LINE_LENGTH];
     long pos;
-    FILE *fp;
     long estimatedLineLength;
     long estimatedOffset;
     long offset;
-    int lineCount = 0;
-    int index = 0;
+    int lineCount;
+    int index;
 
     if (desiredNumberOfLines <= 0)
     {
@@ -230,6 +222,10 @@ Status Tail(const char *fileName, int desiredNumberOfLines)
             {
                 /* EOF reached */
                 break;
+            }
+            if (strlen(temp) == MAX_LINE_LENGTH)
+            {
+                continue;
             }
             FillPosition(positions, pos, &index, desiredNumberOfLines, &lineCount);
         }

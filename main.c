@@ -1,23 +1,50 @@
-#include "appointment_diary.c"
+// #include "appointment_diary.c"
+#include "wc&tail.c"
+// #include "structs.c"
 
 int main()
 {
-    pCalendar calendar = NULL;
-    pMeeting meeting;
-    int result;
-    int initialSize = 2;
-    int blockSize = 2;
-    Participant parts[] = {ALICE, BOB};
-    Room room = ROME;
-    int numOfParts = 2;
+    // FILE *fp;
+    // Person persons[] = {{"Bob", 654654654, 25, 8}, {"Alice", 123123123, 28, 12}, {"Robert", 998877445, 35, 10}};
 
-    calendar = CreateAD(initialSize, blockSize);
-    InsertMeeting(calendar, CreateMeeting(11.00, 12.00, room, parts, numOfParts));
-    InsertMeeting(calendar, CreateMeeting(12.00, 13.00, room, parts, numOfParts));
-    LoadAD(&calendar,"AD.txt");
-    PrintAD(calendar);
+    // fp = fopen("BinaryPersons.bin", "w+");
+    // if (fp == NULL)
+    // {
+    //     return -1;
+    // };
+    // fwrite(persons, sizeof(struct Person), 3, fp);
 
+    // printf("Reading three persons from the file...\n");
+    // Person newPersons[3] = {0};
+    // fseek(fp, 0, SEEK_SET);
+    // fread(newPersons, sizeof(struct Person), 3, fp);
+    // printf("Persons details:\n");
+    // printPersonsArray(newPersons, 3);
+
+    // printf("Reading third person from the file...\n");
+    // Person p = {0};
+    // fseek(fp, 2 * sizeof(struct Person), SEEK_SET);
+    // fread(&p, sizeof(struct Person), 1, fp);
+    // printf("Person details:\nName: %s\nId: %d\nAge: %d\nEducation: %d\n\n", p.name, p.id, p.age, p.education);
+    // fclose(fp);
     
+    Tail("main.c", 10);
+
+    // pCalendar calendar = NULL;
+    // pMeeting meeting;
+    // int result;
+    // int initialSize = 2;
+    // int blockSize = 2;
+    // Participant parts[] = {ALICE, BOB};
+    // Room room = ROME;
+    // int numOfParts = 2;
+
+    // calendar = CreateAD(initialSize, blockSize);
+    // InsertMeeting(calendar, CreateMeeting(11.00, 12.00, room, parts, numOfParts));
+    // InsertMeeting(calendar, CreateMeeting(12.00, 13.00, room, parts, numOfParts));
+    // LoadAD(&calendar,"AD.txt");
+    // PrintAD(calendar);
+
     // /* ------------------------------------------
     //    Test Case 1:
     //    Insertion When Number of Meetings Equals Size (Testing Reallocation)

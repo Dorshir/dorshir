@@ -10,6 +10,7 @@
         "string": "c",
         "unordered_map": "c",
         "vector": "c",
-        "wc&tail.h": "c"
+        "wc&tail.h": "c",
+        "random": "c"
     }
 }

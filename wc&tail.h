@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <limits.h>
 #include <ctype.h>
 #include <string.h>
 
@@ -14,14 +13,14 @@
 
 typedef enum Status
 {
-    OK,
+    OK = 1,
     FILE_OPEN_FAILED,
     INVALID_NUMBER_OF_LINES,
     EMPTY_FILE,
     ALLOCATE_MEMORY_FAILED
 } Status;
 
-typedef enum
+typedef enum Bool
 {
     FALSE,
     TRUE
