@@ -1,9 +1,16 @@
 // #include "appointment_diary.c"
-#include "wc&tail.c"
+// #include "wc&tail.c"
 // #include "structs.c"
+#include "frequencies.c"
 
 int main()
 {
+    WordsFrequencies("main.c");
+
+    // int a = LetterFrequencies("AD.txt");
+
+
+
     // FILE *fp;
     // Person persons[] = {{"Bob", 654654654, 25, 8}, {"Alice", 123123123, 28, 12}, {"Robert", 998877445, 35, 10}};
 
@@ -27,9 +34,6 @@ int main()
     // fread(&p, sizeof(struct Person), 1, fp);
     // printf("Person details:\nName: %s\nId: %d\nAge: %d\nEducation: %d\n\n", p.name, p.id, p.age, p.education);
     // fclose(fp);
-    
-    Tail("main.c", 10);
-
     // pCalendar calendar = NULL;
     // pMeeting meeting;
     // int result;
