@@ -1,62 +1,29 @@
 #include "appointment_diary.h"
+#define MEETING_BEGIN_BOUNDARY 0.0
+#define MEETING_END_BOUNDARY 23.99
+#define MAX_LINE_LENGTH 200
+#define INITIAL_BLOCK_SIZE 2
+#define INITIAL_MEETINGS_SIZE 4
 
-void Swap(pMeeting *m1, pMeeting *m2)
-{
-    pMeeting temp = *m1;
-    *m1 = *m2;
-    *m2 = temp;
-}
+void Swap(pMeeting *m1, pMeeting *m2);
+void SortMeetings(pMeeting *meetings, int numOfMeetings);
+int BinarySearch(pMeeting *meetings, float begin, int length);
+Bool TimeOverlap(pMeeting newMeeting, pMeeting currMeeting);
+Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting);
+Bool RoomOverlap(pMeeting newMeeting, pMeeting currMeeting);
+Status IsOverlap(pCalendar calendar, pMeeting newMeeting);
+Status CheckInputInsert(pCalendar calendar, pMeeting meeting);
+Status CheckInputRemove(pCalendar calendar, float begin);
+Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants);
+Status ValidateRoom(int room);
+Status ParseMeeting(FILE *fp, pMeeting *newMeeting);
+Status LoadMeetings(FILE *fp, pCalendar calendar);
+void MeetingToFile(FILE *fp, pMeeting meeting);
+void PrintMeeting(pMeeting meeting);
+void FreeMeetings(pCalendar calendar);
+void DestroyMeeting(pMeeting *meeting);
 
-void SortMeetings(pMeeting *meetings, int numOfMeetings)
-{
-    int i, j;
-
-    if (meetings == NULL)
-    {
-        return;
-    }
-    for (i = 0; i < numOfMeetings - 1; i++)
-    {
-        for (j = 0; j < numOfMeetings - i - 1; j++)
-        {
-            if (meetings[j]->begin > meetings[j + 1]->begin)
-            {
-                Swap(&meetings[j], &meetings[j + 1]);
-            }
-        }
-    }
-}
-
-int BinarySearch(pMeeting *meetings, float begin, int length)
-{
-    int low = 0;
-    int high = length - 1;
-    int mid;
-    while (low <= high)
-    {
-        mid = low + (high - low) / 2;
-
-        if (begin == (meetings)[mid]->begin)
-            return mid;
-
-        if (begin > meetings[mid]->begin)
-            low = mid + 1;
-
-        else
-            high = mid - 1;
-    }
-
-    return -1;
-}
-
-void PrintMeeting(pMeeting meeting)
-{
-    if (meeting == NULL)
-    {
-        return;
-    }
-    printf("Meeting begin time: %f\nMeeting end time: %f\nMeeting room: %d\n", meeting->begin, meeting->end, meeting->room);
-}
+/************************************** Main functions ***************************************/
 
 pCalendar CreateAD(int meetingsSize, int blockSize)
 {
@@ -142,6 +109,206 @@ pMeeting FindMeeting(pCalendar calendar, float begin)
     return foundMeeting;
 }
 
+Status InsertMeeting(pCalendar calendar, pMeeting meeting)
+{
+    pMeeting *temp;
+    int newSize;
+    int inputCheck;
+
+    inputCheck = CheckInputInsert(calendar, meeting);
+    if (inputCheck != OK)
+    {
+        return inputCheck;
+    }
+
+    if (calendar->numOfMeetings == calendar->meetingsSize)
+    {
+        if (calendar->blockSize == 0)
+        {
+            return OVERFLOW;
+        }
+
+        newSize = calendar->meetingsSize + calendar->blockSize;
+        temp = realloc(calendar->meetings, newSize * sizeof(pMeeting));
+        if (temp == NULL)
+        {
+            return REALLOC_FAILED;
+        }
+        calendar->meetings = temp;
+        calendar->meetingsSize = newSize;
+    }
+
+    calendar->meetings[calendar->numOfMeetings] = meeting;
+    calendar->numOfMeetings++;
+
+    SortMeetings(calendar->meetings, calendar->numOfMeetings);
+
+    return OK;
+}
+
+Status RemoveMeeting(pCalendar calendar, float begin)
+{
+    pMeeting foundMeeting;
+    int inputCheck;
+    if (inputCheck != OK)
+    {
+        return inputCheck;
+    }
+
+    foundMeeting = FindMeeting(calendar, begin);
+    if (foundMeeting == NULL)
+    {
+        return NOT_FOUND;
+    }
+    foundMeeting->begin = MEETING_END_BOUNDARY + 1;
+    SortMeetings(calendar->meetings, calendar->numOfMeetings);
+    free(foundMeeting);
+
+    foundMeeting = NULL;
+    calendar->numOfMeetings--;
+
+    return OK;
+}
+
+Status LoadAD(pCalendar *calendar, char *fileName)
+{
+    FILE *fp;
+    Status status = OK;
+
+    if ((fp = fopen(fileName, "r")) == NULL)
+    {
+        return OPEN_FILE_FAILED;
+    }
+    if (calendar == NULL || *calendar == NULL)
+    {
+        return NULL_PTR_ERROR;
+    }
+    if ((*calendar)->meetingsSize > 0)
+    {
+        printf("Warning! The diary had meetings that were deleted and replaced with the new data.\n");
+        DestroyAD(calendar);
+    }
+
+    *calendar = CreateAD(INITIAL_MEETINGS_SIZE, INITIAL_BLOCK_SIZE);
+    if (*calendar == NULL)
+    {
+        fclose(fp);
+        return CALENDAR_CREATION_FAILED;
+    }
+
+    printf("%d", (*calendar)->meetingsSize);
+
+    status = LoadMeetings(fp, *calendar);
+    if (status != OK)
+    {
+        DestroyAD(calendar);
+    }
+
+    fclose(fp);
+    return status;
+}
+
+Status StoreAD(pCalendar calendar, const char *fileName)
+{
+    FILE *fp;
+    int index;
+    if ((fp = fopen(fileName, "w")) == NULL)
+    {
+        return OPEN_FILE_FAILED;
+    }
+
+    for (index = 0; index < calendar->numOfMeetings; index++)
+    {
+        MeetingToFile(fp, calendar->meetings[index]);
+    }
+
+    fclose(fp);
+    return OK;
+}
+
+Status PrintAD(pCalendar AD)
+{
+    int index;
+    if (AD == NULL || AD->meetings == NULL)
+    {
+        return NULL_PTR_ERROR;
+    }
+
+    for (index = 0; index < AD->numOfMeetings; index++)
+    {
+        printf("Meeting num %d:\n", index);
+        PrintMeeting((AD->meetings)[index]);
+    }
+
+    return OK;
+}
+
+void DestroyAD(pCalendar *calendar)
+{
+    if (calendar == NULL || (*calendar) == NULL)
+    {
+        return;
+    }
+    FreeMeetings(*calendar);
+    (*calendar)->numOfMeetings = 0;
+    (*calendar)->meetingsSize = 0;
+    (*calendar)->blockSize = 0;
+
+    free(*calendar);
+    *calendar = NULL;
+}
+
+/************************************** Sub functions ***************************************/
+
+void Swap(pMeeting *m1, pMeeting *m2)
+{
+    pMeeting temp = *m1;
+    *m1 = *m2;
+    *m2 = temp;
+}
+
+void SortMeetings(pMeeting *meetings, int numOfMeetings)
+{
+    int i, j;
+
+    if (meetings == NULL)
+    {
+        return;
+    }
+    for (i = 0; i < numOfMeetings - 1; i++)
+    {
+        for (j = 0; j < numOfMeetings - i - 1; j++)
+        {
+            if (meetings[j]->begin > meetings[j + 1]->begin)
+            {
+                Swap(&meetings[j], &meetings[j + 1]);
+            }
+        }
+    }
+}
+
+int BinarySearch(pMeeting *meetings, float begin, int length)
+{
+    int low = 0;
+    int high = length - 1;
+    int mid;
+    while (low <= high)
+    {
+        mid = low + (high - low) / 2;
+
+        if (begin == (meetings)[mid]->begin)
+            return mid;
+
+        if (begin > meetings[mid]->begin)
+            low = mid + 1;
+
+        else
+            high = mid - 1;
+    }
+
+    return -1;
+}
+
 Bool TimeOverlap(pMeeting newMeeting, pMeeting currMeeting)
 {
     return !(newMeeting->end <= currMeeting->begin || newMeeting->begin >= currMeeting->end);
@@ -214,43 +381,6 @@ Status CheckInputInsert(pCalendar calendar, pMeeting meeting)
     return check;
 }
 
-Status InsertMeeting(pCalendar calendar, pMeeting meeting)
-{
-    pMeeting *temp;
-    int newSize;
-    int inputCheck;
-
-    inputCheck = CheckInputInsert(calendar, meeting);
-    if (inputCheck != OK)
-    {
-        return inputCheck;
-    }
-
-    if (calendar->numOfMeetings == calendar->meetingsSize)
-    {
-        if (calendar->blockSize == 0)
-        {
-            return OVERFLOW;
-        }
-
-        newSize = calendar->meetingsSize + calendar->blockSize;
-        temp = realloc(calendar->meetings, newSize * sizeof(pMeeting));
-        if (temp == NULL)
-        {
-            return REALLOC_FAILED;
-        }
-        calendar->meetings = temp;
-        calendar->meetingsSize = newSize;
-    }
-
-    calendar->meetings[calendar->numOfMeetings] = meeting;
-    calendar->numOfMeetings++;
-
-    SortMeetings(calendar->meetings, calendar->numOfMeetings);
-
-    return OK;
-}
-
 Status CheckInputRemove(pCalendar calendar, float begin)
 {
     Status check = OK;
@@ -263,30 +393,6 @@ Status CheckInputRemove(pCalendar calendar, float begin)
         check = UNDERFLOW;
     }
     return check;
-}
-
-Status RemoveMeeting(pCalendar calendar, float begin)
-{
-    pMeeting foundMeeting;
-    int inputCheck;
-    if (inputCheck != OK)
-    {
-        return inputCheck;
-    }
-
-    foundMeeting = FindMeeting(calendar, begin);
-    if (foundMeeting == NULL)
-    {
-        return NOT_FOUND;
-    }
-    foundMeeting->begin = MEETING_END_BOUNDARY + 1;
-    SortMeetings(calendar->meetings, calendar->numOfMeetings);
-    free(foundMeeting);
-
-    foundMeeting = NULL;
-    calendar->numOfMeetings--;
-
-    return OK;
 }
 
 Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants)
@@ -365,16 +471,6 @@ Status ParseMeeting(FILE *fp, pMeeting *newMeeting)
     return OK;
 }
 
-void DestroyMeeting(pMeeting *meeting)
-{
-    if (meeting != NULL && *meeting != NULL)
-    {
-        free((*meeting)->participants);
-        free(*meeting);
-        *meeting = NULL;
-    }
-}
-
 Status LoadMeetings(FILE *fp, pCalendar calendar)
 {
     pMeeting newMeeting = NULL;
@@ -406,38 +502,6 @@ Status LoadMeetings(FILE *fp, pCalendar calendar)
     return OK;
 }
 
-Status LoadAD(pCalendar *calendar, char *fileName)
-{
-    FILE *fp;
-    Status status = OK;
-
-    if ((fp = fopen(fileName, "r")) == NULL)
-    {
-        return OPEN_FILE_FAILED;
-    }
-    if (*calendar != NULL)
-    {
-        printf("Warning! The diary had meetings that were deleted and replaced with the new data.\n");
-        DestroyAD(calendar);
-    }
-
-    *calendar = CreateAD(INITIAL_MEETINGS_SIZE, INITIAL_BLOCK_SIZE);
-    if (*calendar == NULL)
-    {
-        fclose(fp);
-        return CALENDAR_CREATION_FAILED;
-    }
-
-    status = LoadMeetings(fp, *calendar);
-    if (status != OK)
-    {
-        DestroyAD(calendar);
-    }
-
-    fclose(fp);
-    return status;
-}
-
 void MeetingToFile(FILE *fp, pMeeting meeting)
 {
     int index = 0;
@@ -452,39 +516,13 @@ void MeetingToFile(FILE *fp, pMeeting meeting)
     fprintf(fp, "\n");
 }
 
-Status StoreAD(pCalendar calendar, const char *fileName)
+void PrintMeeting(pMeeting meeting)
 {
-    FILE *fp;
-    int index;
-    if ((fp = fopen(fileName, "w")) == NULL)
+    if (meeting == NULL)
     {
-        return OPEN_FILE_FAILED;
+        return;
     }
-
-    for (index = 0; index < calendar->numOfMeetings; index++)
-    {
-        MeetingToFile(fp, calendar->meetings[index]);
-    }
-
-    fclose(fp);
-    return OK;
-}
-
-Status PrintAD(pCalendar AD)
-{
-    int index;
-    if (AD == NULL || AD->meetings == NULL)
-    {
-        return NULL_PTR_ERROR;
-    }
-
-    for (index = 0; index < AD->numOfMeetings; index++)
-    {
-        printf("Meeting num %d:\n", index);
-        PrintMeeting((AD->meetings)[index]);
-    }
-
-    return OK;
+    printf("Meeting begin time: %f\nMeeting end time: %f\nMeeting room: %d\n", meeting->begin, meeting->end, meeting->room);
 }
 
 void FreeMeetings(pCalendar calendar)
@@ -496,15 +534,15 @@ void FreeMeetings(pCalendar calendar)
         free((calendar->meetings)[index]);
     }
     free(calendar->meetings);
+    calendar->meetings = NULL;
 }
 
-void DestroyAD(pCalendar *calendar)
+void DestroyMeeting(pMeeting *meeting)
 {
-    if (calendar == NULL || (*calendar) == NULL)
+    if (meeting != NULL && *meeting != NULL)
     {
-        return;
+        free((*meeting)->participants);
+        free(*meeting);
+        *meeting = NULL;
     }
-    FreeMeetings(*calendar);
-    free(*calendar);
-    *calendar == NULL;
 }

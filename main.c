@@ -1,7 +1,5 @@
-// #include "appointment_diary.h"
-// #include "wc&tail.h"
-// #include "structs.h"
-#include "bitwise.c"
+#include "appointment_diary.c"
+
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,272 +9,241 @@
 int main(int argc, char *argv[])
 {
 
-    unsigned char c = '5';
-    unsigned char f;
-    // InvertBits(c, &f);
-    RotateBits(c,3);
+    pCalendar calendar = NULL;
+    pMeeting meeting;
+    int result;
+    int initialSize = 2;
+    int blockSize = 2;
+    Participant parts[] = {ALICE, BOB};
+    Room room = ROME;
+    int numOfParts = 2;
+    Status status;
 
-    // WordsFrequencies("main.c");
+    calendar = CreateAD(initialSize, blockSize);
+    InsertMeeting(calendar, CreateMeeting(11.00, 12.00, room, parts, numOfParts));
+    InsertMeeting(calendar, CreateMeeting(12.00, 13.00, room, parts, numOfParts));
+    LoadAD(&calendar,"AD.txt");
+    PrintAD(calendar);
 
-    // int a = LetterFrequencies("AD.txt");
+    /* ------------------------------------------
+       Test Case 1:
+       Insertion When Number of Meetings Equals Size (Testing Reallocation)
+    -------------------------------------------- */
 
-    // FILE *fp;
-    // Person persons[] = {{"Bob", 654654654, 25, 8}, {"Alice", 123123123, 28, 12}, {"Robert", 998877445, 35, 10}};
+    printf("Test Case 1: Insertion When Number of Meetings Equals Size (Testing Reallocation)\n");
 
-    // fp = fopen("BinaryPersons.bin", "w+");
-    // if (fp == NULL)
-    // {
-    //     return -1;
-    // };
-    // fwrite(persons, sizeof(struct Person), 3, fp);
+    calendar = CreateAD(initialSize, blockSize);
+    if (calendar == NULL)
+    {
+        printf("Failed to create appointment diary.\n");
+        return 1;
+    }
 
-    // printf("Reading three persons from the file...\n");
-    // Person newPersons[3] = {0};
-    // fseek(fp, 0, SEEK_SET);
-    // fread(newPersons, sizeof(struct Person), 3, fp);
-    // printf("Persons details:\n");
-    // printPersonsArray(newPersons, 3);
+    /* Insert meetings to fill up the calendar */
+    InsertMeeting(calendar, CreateMeeting(9.00, 10.00, room, parts, numOfParts));
+    InsertMeeting(calendar, CreateMeeting(10.30, 11.30, room, parts, numOfParts));
 
-    // printf("Reading third person from the file...\n");
-    // Person p = {0};
-    // fseek(fp, 2 * sizeof(struct Person), SEEK_SET);
-    // fread(&p, sizeof(struct Person), 1, fp);
-    // printf("Person details:\nName: %s\nId: %d\nAge: %d\nEducation: %d\n\n", p.name, p.id, p.age, p.education);
-    // fclose(fp);
-    // pCalendar calendar = NULL;
-    // pMeeting meeting;
-    // int result;
-    // int initialSize = 2;
-    // int blockSize = 2;
-    // Participant parts[] = {ALICE, BOB};
-    // Room room = ROME;
-    // int numOfParts = 2;
+    printf("Calendar after insertion:\n");
+    PrintAD(calendar);
 
-    // calendar = CreateAD(initialSize, blockSize);
-    // InsertMeeting(calendar, CreateMeeting(11.00, 12.00, room, parts, numOfParts));
-    // InsertMeeting(calendar, CreateMeeting(12.00, 13.00, room, parts, numOfParts));
-    // LoadAD(&calendar,"AD.txt");
-    // PrintAD(calendar);
+    /* Insert another meeting to trigger reallocation */
+    printf("Inserting meeting to trigger reallocation...\n");
+    meeting = CreateMeeting(12.00, 13.00, room, parts, numOfParts);
+    result = InsertMeeting(calendar, meeting);
+    if (result == REALLOC_FAILED)
+    {
+        printf("Reallocation failed.\n");
+    }
+    else if (result != OK)
+    {
+        printf("Failed to insert meeting.\n");
+    }
+    else
+    {
+        printf("Meeting inserted successfully after reallocation.\n");
+    }
 
-    // /* ------------------------------------------
-    //    Test Case 1:
-    //    Insertion When Number of Meetings Equals Size (Testing Reallocation)
-    // -------------------------------------------- */
+    /* Print the calendar */
+    printf("Calendar after insertion:\n");
+    PrintAD(calendar);
 
-    // printf("Test Case 1: Insertion When Number of Meetings Equals Size (Testing Reallocation)\n");
+    printf("Destroying calendar.\n");
+    DestroyAD(&calendar);
 
-    // calendar = CreateAD(initialSize, blockSize);
-    // if (calendar == NULL)
-    // {
-    //     printf("Failed to create appointment diary.\n");
-    //     return 1;
-    // }
+    printf("\n");
 
-    // /* Insert meetings to fill up the calendar */
-    // InsertMeeting(calendar, CreateMeeting(9.00, 10.00, room, parts, numOfParts));
-    // InsertMeeting(calendar, CreateMeeting(10.30, 11.30, room, parts, numOfParts));
+    /* ------------------------------------------
+       Test Case 2:
+       Insertion When Block Size is 0 (Should Fail When Calendar is Full)
+    -------------------------------------------- */
 
-    // printf("Calendar after insertion:\n");
-    // PrintAD(calendar);
+    printf("Test Case 2: Insertion When Block Size is 0 (Should Fail When Calendar is Full)\n");
 
-    // /* Insert another meeting to trigger reallocation */
-    // printf("Inserting meeting to trigger reallocation...\n");
-    // meeting = CreateMeeting(12.00, 13.00, room, parts, numOfParts);
-    // result = InsertMeeting(calendar, meeting);
-    // if (result == REALLOC_FAILED)
-    // {
-    //     printf("Reallocation failed.\n");
-    // }
-    // else if (result != OK)
-    // {
-    //     printf("Failed to insert meeting.\n");
-    // }
-    // else
-    // {
-    //     printf("Meeting inserted successfully after reallocation.\n");
-    // }
+    initialSize = 2;
+    blockSize = 0;
 
-    // /* Print the calendar */
-    // printf("Calendar after insertion:\n");
-    // PrintAD(calendar);
+    calendar = CreateAD(initialSize, blockSize);
+    if (calendar == NULL)
+    {
+        printf("Failed to create appointment diary.\n");
+        return 1;
+    }
 
-    // printf("Destroying calendar.\n");
-    // DestroyAD(&calendar);
+    /* Insert meetings to fill up the calendar */
+    InsertMeeting(calendar, CreateMeeting(9.00, 10.00, 101, parts, numOfParts));
+    InsertMeeting(calendar, CreateMeeting(10.30, 11.30, 102, parts, numOfParts));
 
-    // printf("\n");
+    /* Attempt to insert another meeting, which should fail */
+    printf("Attempting to insert another meeting...\n");
+    meeting = CreateMeeting(12.00, 13.00, 103, parts, numOfParts);
+    result = InsertMeeting(calendar, meeting);
+    if (result == OVERFLOW)
+    {
+        printf("Insertion failed due to overflow (block size is 0).\n");
+        free(meeting);
+    }
+    else if (result != OK)
+    {
+        printf("Failed to insert meeting.\n");
+    }
+    else
+    {
+        printf("Meeting inserted successfully (unexpected).\n");
+    }
 
-    // /* ------------------------------------------
-    //    Test Case 2:
-    //    Insertion When Block Size is 0 (Should Fail When Calendar is Full)
-    // -------------------------------------------- */
+    /* Print the calendar */
+    printf("Calendar after insertion attempt:\n");
+    PrintAD(calendar);
 
-    // printf("Test Case 2: Insertion When Block Size is 0 (Should Fail When Calendar is Full)\n");
+    printf("Destroying calendar.\n");
+    DestroyAD(&calendar);
 
-    // initialSize = 2;
-    // blockSize = 0;
+    printf("\n");
 
-    // calendar = CreateAD(initialSize, blockSize);
-    // if (calendar == NULL)
-    // {
-    //     printf("Failed to create appointment diary.\n");
-    //     return 1;
-    // }
+    /* ------------------------------------------
+       Test Case 3:
+       Removing Meetings When Begin Time Exists and When It Does Not Exist
+    -------------------------------------------- */
 
-    // /* Insert meetings to fill up the calendar */
-    // InsertMeeting(calendar, CreateMeeting(9.00, 10.00, 101, parts, numOfParts));
-    // InsertMeeting(calendar, CreateMeeting(10.30, 11.30, 102, parts, numOfParts));
+    printf("Test Case 3: Removing Meetings When Begin Time Exists and When It Does Not Exist\n");
 
-    // /* Attempt to insert another meeting, which should fail */
-    // printf("Attempting to insert another meeting...\n");
-    // meeting = CreateMeeting(12.00, 13.00, 103, parts, numOfParts);
-    // result = InsertMeeting(calendar, meeting);
-    // if (result == OVERFLOW)
-    // {
-    //     printf("Insertion failed due to overflow (block size is 0).\n");
-    //     free(meeting);
-    // }
-    // else if (result != OK)
-    // {
-    //     printf("Failed to insert meeting.\n");
-    // }
-    // else
-    // {
-    //     printf("Meeting inserted successfully (unexpected).\n");
-    // }
+    calendar = CreateAD(5, 2);
+    if (calendar == NULL)
+    {
+        printf("Failed to create appointment diary.\n");
+        return 1;
+    }
 
-    // /* Print the calendar */
-    // printf("Calendar after insertion attempt:\n");
-    // PrintAD(calendar);
+    /* Insert some meetings */
+    InsertMeeting(calendar, CreateMeeting(9.00, 10.00, 101, parts, numOfParts));
+    InsertMeeting(calendar, CreateMeeting(11.00, 12.00, 102, parts, numOfParts));
+    InsertMeeting(calendar, CreateMeeting(14.00, 15.00, 103, parts, numOfParts));
 
-    // printf("Destroying calendar.\n");
-    // DestroyAD(&calendar);
+    /* Remove a meeting that exists */
+    printf("Attempting to remove meeting starting at 11.00...\n");
+    result = RemoveMeeting(calendar, 11.00);
+    if (result == OK)
+    {
+        printf("Meeting removed successfully.\n");
+    }
+    else
+    {
+        printf("Failed to remove meeting.\n");
+    }
 
-    // printf("\n");
+    /* Print the calendar */
+    printf("Calendar after removing 11.00:\n");
+    PrintAD(calendar);
 
-    // /* ------------------------------------------
-    //    Test Case 3:
-    //    Removing Meetings When Begin Time Exists and When It Does Not Exist
-    // -------------------------------------------- */
+    /* Attempt to remove a meeting that does not exist */
+    printf("Attempting to remove meeting starting at 13.00...\n");
+    result = RemoveMeeting(calendar, 13.00);
+    if (result == NOT_FOUND)
+    {
+        printf("Meeting not found. Cannot remove.\n");
+    }
+    else if (result != OK)
+    {
+        printf("Failed to remove meeting.\n");
+    }
+    else
+    {
+        printf("Meeting removed unexpectedly.\n");
+    }
 
-    // printf("Test Case 3: Removing Meetings When Begin Time Exists and When It Does Not Exist\n");
+    /* Print the calendar */
+    printf("Calendar after removal attempts:\n");
+    PrintAD(calendar);
 
-    // calendar = CreateAD(5, 2);
-    // if (calendar == NULL)
-    // {
-    //     printf("Failed to create appointment diary.\n");
-    //     return 1;
-    // }
+    DestroyAD(&calendar);
 
-    // /* Insert some meetings */
-    // InsertMeeting(calendar, CreateMeeting(9.00, 10.00, 101, parts, numOfParts));
-    // InsertMeeting(calendar, CreateMeeting(11.00, 12.00, 102, parts, numOfParts));
-    // InsertMeeting(calendar, CreateMeeting(14.00, 15.00, 103, parts, numOfParts));
+    printf("\n");
 
-    // /* Remove a meeting that exists */
-    // printf("Attempting to remove meeting starting at 11.00...\n");
-    // result = RemoveMeeting(calendar, 11.00);
-    // if (result == OK)
-    // {
-    //     printf("Meeting removed successfully.\n");
-    // }
-    // else
-    // {
-    //     printf("Failed to remove meeting.\n");
-    // }
+    /* ------------------------------------------
+       Test Case 4:
+       Testing Overlap Detection
+    -------------------------------------------- */
 
-    // /* Print the calendar */
-    // printf("Calendar after removing 11.00:\n");
-    // PrintAD(calendar);
+    printf("Test Case 4: Testing Overlap Detection\n");
 
-    // /* Attempt to remove a meeting that does not exist */
-    // printf("Attempting to remove meeting starting at 13.00...\n");
-    // result = RemoveMeeting(calendar, 13.00);
-    // if (result == NOT_FOUND)
-    // {
-    //     printf("Meeting not found. Cannot remove.\n");
-    // }
-    // else if (result != OK)
-    // {
-    //     printf("Failed to remove meeting.\n");
-    // }
-    // else
-    // {
-    //     printf("Meeting removed unexpectedly.\n");
-    // }
+    calendar = CreateAD(5, 2);
+    if (calendar == NULL)
+    {
+        printf("Failed to create appointment diary.\n");
+        return 1;
+    }
 
-    // /* Print the calendar */
-    // printf("Calendar after removal attempts:\n");
-    // PrintAD(calendar);
+    /* Insert non-overlapping meetings */
+    InsertMeeting(calendar, CreateMeeting(9.00, 10.00, room, parts, numOfParts));
+    InsertMeeting(calendar, CreateMeeting(11.00, 12.00, 102, parts, numOfParts));
 
-    // DestroyAD(&calendar);
+    parts[0] = ROBERT;
+    parts[1] = ANGELINA;
+    room = JERUSALEM;
+    /* Attempt to insert an overlapping meeting */
+    printf("Attempting to insert a meeting from 9.30 to 10.30 in same room but different participants(should not overlap)...\n");
+    meeting = CreateMeeting(9.30, 10.30, room, parts, numOfParts);
+    result = InsertMeeting(calendar, meeting);
+    if (result == OVERLAP)
+    {
+        printf("Overlap detected. Meeting not inserted.\n");
+        free(meeting);
+    }
+    else if (result != OK)
+    {
+        printf("Failed to insert meeting.\n");
+    }
+    else
+    {
+        printf("Meeting inserted successfully.\n");
+    }
 
-    // printf("\n");
+    parts[0] = ROBERT;
+    parts[1] = ANGELINA;
+    room = VIENNA;
+    /* Attempt to insert an overlapping meeting */
+    printf("Attempting to insert a meeting from 9.30 to 10.30 in different room but overlaps participants(should overlap)...\n");
+    meeting = CreateMeeting(9.30, 10.30, room, parts, numOfParts);
+    result = InsertMeeting(calendar, meeting);
+    if (result == OVERLAP)
+    {
+        printf("Overlap detected. Meeting not inserted.\n");
+        free(meeting);
+    }
+    else if (result != OK)
+    {
+        printf("Failed to insert meeting.\n");
+    }
+    else
+    {
+        printf("Meeting inserted successfully.\n");
+    }
 
-    // /* ------------------------------------------
-    //    Test Case 4:
-    //    Testing Overlap Detection
-    // -------------------------------------------- */
+    /* Print the calendar */
+    printf("Calendar after overlap tests:\n");
+    PrintAD(calendar);
 
-    // printf("Test Case 4: Testing Overlap Detection\n");
-
-    // calendar = CreateAD(5, 2);
-    // if (calendar == NULL)
-    // {
-    //     printf("Failed to create appointment diary.\n");
-    //     return 1;
-    // }
-
-    // /* Insert non-overlapping meetings */
-    // InsertMeeting(calendar, CreateMeeting(9.00, 10.00, room, parts, numOfParts));
-    // InsertMeeting(calendar, CreateMeeting(11.00, 12.00, 102, parts, numOfParts));
-
-    // parts[0] = ROBERT;
-    // parts[1] = ANGELINA;
-    // room = JERUSALEM;
-    // /* Attempt to insert an overlapping meeting */
-    // printf("Attempting to insert a meeting from 9.30 to 10.30 in same room but different participants(should not overlap)...\n");
-    // meeting = CreateMeeting(9.30, 10.30, room, parts, numOfParts);
-    // result = InsertMeeting(calendar, meeting);
-    // if (result == OVERLAP)
-    // {
-    //     printf("Overlap detected. Meeting not inserted.\n");
-    //     free(meeting);
-    // }
-    // else if (result != OK)
-    // {
-    //     printf("Failed to insert meeting.\n");
-    // }
-    // else
-    // {
-    //     printf("Meeting inserted successfully.\n");
-    // }
-
-    // parts[0] = ROBERT;
-    // parts[1] = ANGELINA;
-    // room = VIENNA;
-    // /* Attempt to insert an overlapping meeting */
-    // printf("Attempting to insert a meeting from 9.30 to 10.30 in different room but overlaps participants(should overlap)...\n");
-    // meeting = CreateMeeting(9.30, 10.30, room, parts, numOfParts);
-    // result = InsertMeeting(calendar, meeting);
-    // if (result == OVERLAP)
-    // {
-    //     printf("Overlap detected. Meeting not inserted.\n");
-    //     free(meeting);
-    // }
-    // else if (result != OK)
-    // {
-    //     printf("Failed to insert meeting.\n");
-    // }
-    // else
-    // {
-    //     printf("Meeting inserted successfully.\n");
-    // }
-
-    // /* Print the calendar */
-    // printf("Calendar after overlap tests:\n");
-    // PrintAD(calendar);
-
-    // DestroyAD(&calendar);
+    DestroyAD(&calendar);
 
     return 0;
 }

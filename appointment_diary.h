@@ -5,12 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MEETING_BEGIN_BOUNDARY 0.0
-#define MEETING_END_BOUNDARY 23.99
-#define MAX_LINE_LENGTH 200
-#define INITIAL_BLOCK_SIZE 2
-#define INITIAL_MEETINGS_SIZE 4
-
 /**
  * @brief Enum representing participants in meetings.
  */
@@ -211,5 +205,7 @@ Status PrintAD(pCalendar AD);
  * @param calendar Pointer to the appointment diary to destroy.
  */
 void DestroyAD(pCalendar *calendar);
+
+void DestroyMeeting(pMeeting *meeting);
 
 #endif /* __appointment_diary__ */
