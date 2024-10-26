@@ -1,4 +1,19 @@
 #include "wc&tail.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+
+#define INITIAL_AVG_LINE_SIZE 80
+#define MAX_LINE_LENGTH 1000
+#define MAX_LINES_ALLOWED 1000
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
+typedef enum Bool
+{
+    FALSE,
+    TRUE
+} Bool;
 
 void UpdateCounters(char c, int *numOfLines, int *numOfWords, Bool *inWord)
 {
@@ -35,34 +50,6 @@ void WalkTheLine(char *line, int *numOfLines, int *numOfWords)
         UpdateCounters(c, numOfLines, numOfWords, &inWord);
         c = line[++index];
     }
-}
-
-Status Wc(const char *fileName)
-{
-    FILE *fp;
-    char c;
-    int index;
-    char line[MAX_LINE_LENGTH];
-    int numOfChars = 0;
-    int numOfWords = 0;
-    int numOfLines = 0;
-
-    fp = fopen(fileName, "r");
-    if (fp == NULL)
-    {
-        return FILE_OPEN_FAILED;
-    }
-
-    while (fgets(line, MAX_LINE_LENGTH, fp) != NULL)
-    {
-        WalkTheLine(line, &numOfLines, &numOfWords);
-    }
-    numOfChars = ftell(fp);
-
-    printf(" %d  %d %d %s\n", numOfLines, numOfWords, numOfChars, fileName);
-
-    fclose(fp);
-    return OK;
 }
 
 long GetFileSize(FILE *fp)
@@ -155,6 +142,9 @@ void AdjustOffset(long *estimatedLineLength, long *estimatedOffset, long *offset
     *offset = (*estimatedOffset < fileSize) ? *estimatedOffset : fileSize;
 }
 
+
+
+
 Status Tail(const char *fileName, int desiredNumberOfLines)
 {
     FILE *fp;
@@ -241,5 +231,33 @@ Status Tail(const char *fileName, int desiredNumberOfLines)
 
     fclose(fp);
     free(positions);
+    return OK;
+}
+
+Status Wc(const char *fileName)
+{
+    FILE *fp;
+    char c;
+    int index;
+    char line[MAX_LINE_LENGTH];
+    int numOfChars = 0;
+    int numOfWords = 0;
+    int numOfLines = 0;
+
+    fp = fopen(fileName, "r");
+    if (fp == NULL)
+    {
+        return FILE_OPEN_FAILED;
+    }
+
+    while (fgets(line, MAX_LINE_LENGTH, fp) != NULL)
+    {
+        WalkTheLine(line, &numOfLines, &numOfWords);
+    }
+    numOfChars = ftell(fp);
+
+    printf(" %d  %d %d %s\n", numOfLines, numOfWords, numOfChars, fileName);
+
+    fclose(fp);
     return OK;
 }

@@ -1,30 +1,14 @@
 #ifndef __wctail_h__
 #define __wctail_h__
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-
-#define INITIAL_AVG_LINE_SIZE 80
-#define MAX_LINE_LENGTH 1024
-#define MAX_LINES_ALLOWED 1000
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-
 typedef enum Status
 {
-    OK = 1,
-    FILE_OPEN_FAILED,
+    FILE_OPEN_FAILED = -3,
     INVALID_NUMBER_OF_LINES,
     EMPTY_FILE,
-    ALLOCATE_MEMORY_FAILED
+    ALLOCATE_MEMORY_FAILED,
+    OK
 } Status;
-
-typedef enum Bool
-{
-    FALSE,
-    TRUE
-} Bool;
 
 /**
  * @brief   Prints the number of lines, words, letters in a given file.

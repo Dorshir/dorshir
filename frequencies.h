@@ -1,17 +1,6 @@
 #ifndef __FREQUENCY_H__
 #define __FREQUENCY_H__
 
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h>
-
-#define NUM_OF_LETTERS 52
-#define INITIAL_BUFFER_SIZE 1000
-#define UPPER_CASES_START_POSITION 26
-#define LINE_SIZE 100
-#define WORD_SIZE 25
-
 typedef enum Status
 {
     OPEN_FILE_FAILED,
@@ -21,16 +10,6 @@ typedef enum Status
     WORD_SIZE_OVERFLOW,
     OK
 } Status;
-
-/**
- * @brief Represents a node in the linked list of words.
- */
-typedef struct Node
-{
-    struct Node* next;
-    char word[WORD_SIZE];
-    int freq;
-} Node, *pNode;
 
 
 /**

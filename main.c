@@ -1,15 +1,24 @@
-// #include "appointment_diary.c"
-// #include "wc&tail.c"
-// #include "structs.c"
-#include "frequencies.c"
+// #include "appointment_diary.h"
+// #include "wc&tail.h"
+// #include "structs.h"
+#include "bitwise.c"
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 
-int main()
+
+int main(int argc, char *argv[])
 {
-    WordsFrequencies("main.c");
+
+    unsigned char c = '5';
+    unsigned char f;
+    // InvertBits(c, &f);
+    RotateBits(c,3);
+
+    // WordsFrequencies("main.c");
 
     // int a = LetterFrequencies("AD.txt");
-
-
 
     // FILE *fp;
     // Person persons[] = {{"Bob", 654654654, 25, 8}, {"Alice", 123123123, 28, 12}, {"Robert", 998877445, 35, 10}};

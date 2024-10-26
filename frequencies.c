@@ -1,4 +1,21 @@
 #include "frequencies.h"
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+
+#define NUM_OF_LETTERS 52
+#define INITIAL_BUFFER_SIZE 1000
+#define UPPER_CASES_START_POSITION 26
+#define LINE_SIZE 100
+#define WORD_SIZE 25
+
+typedef struct Node
+{
+    struct Node* next;
+    char word[WORD_SIZE];
+    int freq;
+} Node, *pNode;
 
 void WordToLower(char *word)
 {
@@ -128,27 +145,6 @@ Status IncrementWordsFrequencies(pNode *list, char *line)
     }
 }
 
-Status WordsFrequencies(const char *fileName)
-{
-    FILE *fp;
-    char line[LINE_SIZE];
-    pNode list = NULL;
-
-    if ((fp = fopen(fileName, "r")) == NULL)
-    {
-        return OPEN_FILE_FAILED;
-    }
-
-    while (fgets(line, LINE_SIZE, fp) != NULL)
-    {
-        IncrementWordsFrequencies(&list, line);
-    }
-    PrintWordsFrequencies(list);
-
-    DestroyList(&list);
-    return OK;
-}
-
 void IncrementFrequency(int *frequencies, char c)
 {
     int index;
@@ -189,7 +185,7 @@ char GetCurrentLetter(int index)
     return (index >= UPPER_CASES_START_POSITION) ? 'A' + (index - UPPER_CASES_START_POSITION) : 'a' + index;
 }
 
-void PrintFrequencies(int *frequencies)
+void PrintLettersFrequencies(int *frequencies)
 {
     int index;
     char currLetter;
@@ -204,6 +200,8 @@ void PrintFrequencies(int *frequencies)
         }
     }
 }
+
+
 
 Status LetterFrequencies(const char *fileName)
 {
@@ -233,8 +231,29 @@ Status LetterFrequencies(const char *fileName)
         }
     }
 
-    PrintFrequencies(frequencies);
+    PrintLettersFrequencies(frequencies);
     fclose(fp);
 
     return status;
+}
+
+Status WordsFrequencies(const char *fileName)
+{
+    FILE *fp;
+    char line[LINE_SIZE];
+    pNode list = NULL;
+
+    if ((fp = fopen(fileName, "r")) == NULL)
+    {
+        return OPEN_FILE_FAILED;
+    }
+
+    while (fgets(line, LINE_SIZE, fp) != NULL)
+    {
+        IncrementWordsFrequencies(&list, line);
+    }
+    PrintWordsFrequencies(list);
+
+    DestroyList(&list);
+    return OK;
 }
