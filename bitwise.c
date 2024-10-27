@@ -8,20 +8,22 @@
 #define LEFT 0
 
 void PrintBinary(unsigned char x);
-Bool IsValidCode(char c);
 int ShapeN(int n);
-Status RePosition(char *str, int length, int index, char curr, unsigned char *compressedChar1, unsigned char *compressedChar2);
+Bool IsValidCode(char c);
+Status CompressChars(char *str, int length, int index, char curr, unsigned char *compressedChar1, unsigned char *compressedChar2);
 
-Status CompressString(unsigned char *str, int size)
+/************************************** Main functions ***************************************/
+
+Status CompressString(char *str)
 {
     size_t length = strlen(str);
     size_t compressedLength = (length + 1) / 2;
 
-    int index, newIndex;
+    int index, compressedIndex;
     unsigned char curr;
     unsigned char compressedChar1 = 0, compressedChar2 = 0;
 
-    for (index = 0, newIndex = 0; index < length; index += 2, newIndex++)
+    for (index = 0, compressedIndex = 0; index < length; index += 2, compressedIndex++)
     {
         curr = str[index];
         if (CompressChars(str, length, index, curr, &compressedChar1, &compressedChar2) != OK)
@@ -29,7 +31,7 @@ Status CompressString(unsigned char *str, int size)
             return INVALID_INPUT;
         }
 
-        str[newIndex] = (compressedChar1 << 4) | compressedChar2;
+        str[compressedIndex] = (compressedChar1 << 4) | compressedChar2;
     }
     str[compressedLength] = '\0';
 
@@ -84,6 +86,8 @@ Status InvertBits(unsigned char x, unsigned char *y)
     return OK;
 }
 
+/************************************** Sub functions ***************************************/
+
 void PrintBinary(unsigned char x)
 {
     int index;
@@ -104,7 +108,7 @@ int ShapeN(int n)
     return (n > UCH_IN_BITS ? n % UCH_IN_BITS : n);
 }
 
-Status RePosition(char *str, int length, int index, char curr, unsigned char *compressedChar1, unsigned char *compressedChar2)
+Status CompressChars(char *str, int length, int index, char curr, unsigned char *compressedChar1, unsigned char *compressedChar2)
 {
     if (IsValidCode(curr))
     {

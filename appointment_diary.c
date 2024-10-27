@@ -44,6 +44,7 @@ pCalendar CreateAD(int meetingsSize, int blockSize)
     meetings = (pMeeting *)malloc(meetingsSize * sizeof(pMeeting));
     if (meetings == NULL)
     {
+        free(newAD);
         return NULL;
     }
 
@@ -311,6 +312,7 @@ int BinarySearch(pMeeting *meetings, float begin, int length)
 
 Bool TimeOverlap(pMeeting newMeeting, pMeeting currMeeting)
 {
+    /*CHECK OTHER OPTIONS*/
     return !(newMeeting->end <= currMeeting->begin || newMeeting->begin >= currMeeting->end);
 }
 

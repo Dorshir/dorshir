@@ -1,5 +1,5 @@
-#ifndef __appointment_diary__
-#define __appointment_diary__
+#ifndef __APPOINTMENT_DAIRY__
+#define __APPOINTMENT_DAIRY__
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -102,6 +102,8 @@ pCalendar CreateAD(int meetingsSize, int blockSize);
 
 /**
  * @brief Creates a new meeting.
+ * 
+ * Valid time for the meting is between 00.00 to 23.99
  *
  * @param begin       Start time of the meeting.
  * @param end         End time of the meeting.
@@ -206,6 +208,4 @@ Status PrintAD(pCalendar AD);
  */
 void DestroyAD(pCalendar *calendar);
 
-void DestroyMeeting(pMeeting *meeting);
-
-#endif /* __appointment_diary__ */
+#endif /* __APPOINTMENT_DAIRY__ */

@@ -7,7 +7,6 @@
 #define OK 1
 #define INVALID_INPUT_ERROR -2
 
-
 /**
  * @brief   Finds the first occurrence of the substring str2 in the string str1.
  *

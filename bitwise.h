@@ -2,6 +2,7 @@
 #define __BITWISE_H__
 
 
+
 typedef enum Status
 {
     NULL_PTR_ERROR = -1,
@@ -23,12 +24,11 @@ typedef enum Bool
  * Compression is performed in place.
  *
  * @param str Pointer to the string to be compressed.
- * @param size Size of the string buffer.
  * @return  Returns `OK` (1) on success.
  *          Returns `INVALID_INPUT` (0) if input string includes unsupported codes.
  *          Returns `NULL_PTR_ERROR` (1) if the input string is a null pointer.
  */
-Status CompressString(unsigned char *str, int size);
+Status CompressString(char *str);
 
 /**
  * @brief Inverts the bits of an unsigned char.
@@ -53,5 +53,9 @@ Status InvertBits(unsigned char x, unsigned char* y);
  *          Returns `NULL_PTR_ERROR` (1) if the input string is a null pointer.
  */
 Status RotateBits(unsigned char *x, int n);
+
+
+void PrintBinary(unsigned char x);
+
 
 #endif
