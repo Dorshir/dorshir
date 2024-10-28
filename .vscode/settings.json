@@ -11,6 +11,8 @@
         "unordered_map": "c",
         "vector": "c",
         "wc&tail.h": "c",
-        "random": "c"
+        "random": "c",
+        "algorithm": "c",
+        "stdlib.h": "c"
     }
 }

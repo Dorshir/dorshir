@@ -5,23 +5,23 @@
 #define INITIAL_BLOCK_SIZE 2
 #define INITIAL_MEETINGS_SIZE 4
 
-void Swap(pMeeting *m1, pMeeting *m2);
-void SortMeetings(pMeeting *meetings, int numOfMeetings);
-int BinarySearch(pMeeting *meetings, float begin, int length);
-Bool TimeOverlap(pMeeting newMeeting, pMeeting currMeeting);
-Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting);
-Bool RoomOverlap(pMeeting newMeeting, pMeeting currMeeting);
-Status IsOverlap(pCalendar calendar, pMeeting newMeeting);
-Status CheckInputInsert(pCalendar calendar, pMeeting meeting);
-Status CheckInputRemove(pCalendar calendar, float begin);
-Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants);
-Status ValidateRoom(int room);
-Status ParseMeeting(FILE *fp, pMeeting *newMeeting);
-Status LoadMeetings(FILE *fp, pCalendar calendar);
-void MeetingToFile(FILE *fp, pMeeting meeting);
-void PrintMeeting(pMeeting meeting);
-void FreeMeetings(pCalendar calendar);
-void DestroyMeeting(pMeeting *meeting);
+static void Swap(pMeeting *m1, pMeeting *m2);
+static void SortMeetings(pMeeting *meetings, int numOfMeetings);
+static int BinarySearch(pMeeting *meetings, float begin, int length);
+static Bool TimeOverlap(pMeeting newMeeting, pMeeting currMeeting, pMeeting nextMeeting);
+static Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting);
+static Bool RoomOverlap(pMeeting newMeeting, pMeeting currMeeting);
+static Status IsOverlap(pCalendar calendar, pMeeting newMeeting);
+static Status CheckInputInsert(pCalendar calendar, pMeeting meeting);
+static Status CheckInputRemove(pCalendar calendar, float begin);
+static Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants);
+static Status ValidateRoom(int room);
+static Status ParseMeeting(FILE *fp, pMeeting *newMeeting);
+static Status LoadMeetings(FILE *fp, pCalendar calendar);
+static void MeetingToFile(FILE *fp, pMeeting meeting);
+static void PrintMeeting(pMeeting meeting);
+static void FreeMeetings(pCalendar calendar);
+static void DestroyMeeting(pMeeting *meeting);
 
 /************************************** Main functions ***************************************/
 
@@ -261,14 +261,14 @@ void DestroyAD(pCalendar *calendar)
 
 /************************************** Sub functions ***************************************/
 
-void Swap(pMeeting *m1, pMeeting *m2)
+static void Swap(pMeeting *m1, pMeeting *m2)
 {
     pMeeting temp = *m1;
     *m1 = *m2;
     *m2 = temp;
 }
 
-void SortMeetings(pMeeting *meetings, int numOfMeetings)
+static void SortMeetings(pMeeting *meetings, int numOfMeetings)
 {
     int i, j;
 
@@ -288,7 +288,7 @@ void SortMeetings(pMeeting *meetings, int numOfMeetings)
     }
 }
 
-int BinarySearch(pMeeting *meetings, float begin, int length)
+static int BinarySearch(pMeeting *meetings, float begin, int length)
 {
     int low = 0;
     int high = length - 1;
@@ -310,13 +310,12 @@ int BinarySearch(pMeeting *meetings, float begin, int length)
     return -1;
 }
 
-Bool TimeOverlap(pMeeting newMeeting, pMeeting currMeeting)
+static Bool TimeOverlap(pMeeting newMeeting, pMeeting currMeeting, pMeeting nextMeeting)
 {
-    /*CHECK OTHER OPTIONS*/
     return !(newMeeting->end <= currMeeting->begin || newMeeting->begin >= currMeeting->end);
 }
 
-Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting)
+static Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting)
 {
     int index1;
     int index2;
@@ -333,12 +332,12 @@ Bool PartOverlap(pMeeting newMeeting, pMeeting currMeeting)
     return FALSE;
 }
 
-Bool RoomOverlap(pMeeting newMeeting, pMeeting currMeeting)
+static Bool RoomOverlap(pMeeting newMeeting, pMeeting currMeeting)
 {
     return newMeeting->room == currMeeting->room;
 }
 
-Status IsOverlap(pCalendar calendar, pMeeting newMeeting)
+static Status IsOverlap(pCalendar calendar, pMeeting newMeeting)
 {
     int result = FALSE;
     int timeOverlap;
@@ -346,11 +345,13 @@ Status IsOverlap(pCalendar calendar, pMeeting newMeeting)
     int roomOverlap;
     int index;
     pMeeting currMeeting;
+    pMeeting nextMeeting;
 
     for (index = 0; index < calendar->numOfMeetings; index++)
     {
         currMeeting = calendar->meetings[index];
-        timeOverlap = TimeOverlap(newMeeting, currMeeting);
+        nextMeeting = (index < calendar->numOfMeetings - 1) ? calendar->meetings[index + 1] : NULL;
+        timeOverlap = TimeOverlap(newMeeting, currMeeting, nextMeeting);
         if (timeOverlap)
         {
             partOverlap = PartOverlap(newMeeting, currMeeting);
@@ -365,7 +366,7 @@ Status IsOverlap(pCalendar calendar, pMeeting newMeeting)
     return result;
 }
 
-Status CheckInputInsert(pCalendar calendar, pMeeting meeting)
+static Status CheckInputInsert(pCalendar calendar, pMeeting meeting)
 {
     Status check = OK;
     if (calendar == NULL || calendar->meetings == NULL || meeting == NULL)
@@ -383,7 +384,7 @@ Status CheckInputInsert(pCalendar calendar, pMeeting meeting)
     return check;
 }
 
-Status CheckInputRemove(pCalendar calendar, float begin)
+static Status CheckInputRemove(pCalendar calendar, float begin)
 {
     Status check = OK;
     if (calendar == NULL || calendar->meetings == NULL)
@@ -397,7 +398,7 @@ Status CheckInputRemove(pCalendar calendar, float begin)
     return check;
 }
 
-Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants)
+static Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants)
 {
     int index;
     int participantId;
@@ -431,7 +432,7 @@ Status ParseParticipants(FILE *fp, int numOfParts, Participant **participants)
     return OK;
 }
 
-Status ValidateRoom(int room)
+static Status ValidateRoom(int room)
 {
     if (room < JERUSALEM || room > COPENHAGEN)
     {
@@ -440,7 +441,7 @@ Status ValidateRoom(int room)
     return OK;
 }
 
-Status ParseMeeting(FILE *fp, pMeeting *newMeeting)
+static Status ParseMeeting(FILE *fp, pMeeting *newMeeting)
 {
     float begin;
     float end;
@@ -473,7 +474,7 @@ Status ParseMeeting(FILE *fp, pMeeting *newMeeting)
     return OK;
 }
 
-Status LoadMeetings(FILE *fp, pCalendar calendar)
+static Status LoadMeetings(FILE *fp, pCalendar calendar)
 {
     pMeeting newMeeting = NULL;
     Status status = OK;
@@ -504,7 +505,7 @@ Status LoadMeetings(FILE *fp, pCalendar calendar)
     return OK;
 }
 
-void MeetingToFile(FILE *fp, pMeeting meeting)
+static void MeetingToFile(FILE *fp, pMeeting meeting)
 {
     int index = 0;
     fprintf(fp, "%f ", meeting->begin);
@@ -518,7 +519,7 @@ void MeetingToFile(FILE *fp, pMeeting meeting)
     fprintf(fp, "\n");
 }
 
-void PrintMeeting(pMeeting meeting)
+static void PrintMeeting(pMeeting meeting)
 {
     if (meeting == NULL)
     {
@@ -527,7 +528,7 @@ void PrintMeeting(pMeeting meeting)
     printf("Meeting begin time: %f\nMeeting end time: %f\nMeeting room: %d\n", meeting->begin, meeting->end, meeting->room);
 }
 
-void FreeMeetings(pCalendar calendar)
+static void FreeMeetings(pCalendar calendar)
 {
     int index;
     for (index = 0; index < calendar->numOfMeetings; index++)
@@ -539,7 +540,7 @@ void FreeMeetings(pCalendar calendar)
     calendar->meetings = NULL;
 }
 
-void DestroyMeeting(pMeeting *meeting)
+static void DestroyMeeting(pMeeting *meeting)
 {
     if (meeting != NULL && *meeting != NULL)
     {
