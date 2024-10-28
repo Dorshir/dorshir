@@ -1,6 +1,4 @@
-#include "PointerToFunc/pointer_to_func.c"
-
-#include <stdlib.h>
+#include "pointer_to_func.h"
 #include <math.h>
 #include <stdio.h>
 
