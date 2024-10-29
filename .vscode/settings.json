@@ -13,6 +13,7 @@
         "wc&tail.h": "c",
         "random": "c",
         "algorithm": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "functional": "c"
     }
 }

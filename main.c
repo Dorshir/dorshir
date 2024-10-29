@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdio.h>
 
-static void PrintArray(int *arr, size_t length)
+static void PrintArray(const int *arr, size_t length)
 {
     printf("Array: [");
     for (size_t i = 0; i < length; i++)
@@ -39,21 +39,8 @@ static int CompareByLeastSignificantDigit(int a, int b)
 
 int main()
 {
-    int arr[] = {1, 6, 5, 8, 34, 234, 547, 58, 2, 12, 325, 8, 9, 5, 23, 25, 63, 86, 8, 63, 23, 2, 47, 85, 7, 532};
-    size_t length = sizeof(arr) / sizeof(arr[0]);
-    PrintArray(arr, length);
-
-    Sort(arr, length, CompareAscending);
-    PrintArray(arr, length);
-
-    Sort(arr, length, CompareDescending);
-    PrintArray(arr, length);
-
-    Sort(arr, length, CompareBySinus);
-    PrintArray(arr, length);
-
-    Sort(arr, length, CompareByLeastSignificantDigit);
-    PrintArray(arr, length);
+    const int i = 5;
+    int* ptr = &i;
 
     return 0;
 }
