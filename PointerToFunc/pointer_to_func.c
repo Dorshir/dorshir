@@ -1,7 +1,6 @@
 #include "pointer_to_func.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <stdlib.h> /* size_t, malloc */
+#include <string.h> /* memcpy */
 
 static void Swap(int *a, int *b);
 static void GenericSwap(void *a, void *b, void *temp, size_t elemSize);
@@ -38,7 +37,8 @@ int Sort(int *arr, size_t length, cmpFunc comparator)
 
 int GenericSort(void *arr, size_t length, size_t elemSize, cmpFuncGeneric comparator)
 {
-    char i, j, currPos;
+    size_t i, j;
+    int currPos;
     int flag;
     char *ptr;
     void *temp;
@@ -48,7 +48,7 @@ int GenericSort(void *arr, size_t length, size_t elemSize, cmpFuncGeneric compar
         return NULL_PTR_ERROR;
     }
 
-    *ptr = arr;
+    ptr = arr;
     temp = malloc(elemSize);
     if (temp == NULL)
     {

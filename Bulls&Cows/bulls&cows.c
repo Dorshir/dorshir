@@ -1,6 +1,6 @@
 #include "bulls&cows.h"
 
-void PrintBoard(int board[])
+void PrintBoard(int *board)
 {
     int position;
     printf("Board: [");
@@ -11,11 +11,9 @@ void PrintBoard(int board[])
     printf("%d]", board[position]);
 }
 
-void MakeAGuessPlayer(int guessBoard[])
+void MakeAGuessPlayer(int *guessBoard)
 {
     int position;
-    PrintBoard(guessBoard);
-
     for (position = 0; position < BOARD_SIZE; position++)
     {
         printf("Position[%d] is %d, overwrite it by entering a new digit or [k] to keep\n", position, guessBoard[position]);
@@ -34,10 +32,9 @@ void MakeAGuessPlayer(int guessBoard[])
             position--;
         }
     }
-    PrintBoard(guessBoard);
 }
 
-void InitBoard(int board[])
+void InitBoard(int *board)
 {
     int position;
     for (position = 0; position < BOARD_SIZE; position++)
@@ -46,23 +43,67 @@ void InitBoard(int board[])
     }
 }
 
-void InitPlayer(Player *p)
+void InitPlayer(Player *p, char *playerName, Bool isComputer)
 {
     InitBoard(p->ownBoard);
     InitBoard(p->ownBoard);
     p->bulls = 0;
     p->cows = 0;
-    p->myTurn = 0;
+    p->isMyTurn = 0;
     p->MakeAGuess = MakeAGuessPlayer;
-    p->name = ""; /*Should be an input name or random for the computer*/
+    p->name = playerName;
+    p->isComputer = isComputer;
 }
 
-void InitGame(Player *p1, Player *p2, int *winner)
+Player *CreatePlayer(char *playerName, Bool isComputer)
 {
-    InitPlayer(p1);
-    InitPlayer(p2);
+    Player *newPlayer = malloc(sizeof(Player));
+    if (newPlayer == NULL)
+    {
+        return NULL;
+    }
+    InitPlayer(newPlayer, playerName, isComputer);
+    return newPlayer;
+}
 
-    *winner = 0;
+Bool CreatePlayers(Game *game, char *firstPlayerName, char *secondPlayerName, Vs opponent)
+{
+    game->p1 = CreatePlayer(firstPlayerName, FALSE);
+    if (game->p1 == NULL)
+    {
+        free(game);
+        return FALSE;
+    }
+    game->p2 = CreatePlayer(secondPlayerName, opponent);
+    if (game->p2 == NULL)
+    {
+        free(game->p1);
+        free(game);
+        return FALSE;
+    }
+    return TRUE;
+}
+
+Game *CreateGame(char *firstPlayerName, char *secondPlayerName)
+{
+    if (firstPlayerName == NULL || secondPlayerName == NULL)
+    {
+        return NULL;
+    }
+
+    Game *game = malloc(sizeof(Game));
+    if (game == NULL)
+    {
+        return NULL;
+    }
+
+    if (!CreatePlayers(game, firstPlayerName, secondPlayerName, PLAYER))
+    {
+        return NULL;
+    }
+
+    game->winner = 0;
+    return game;
 }
 
 void ResetHits(Player *p)
@@ -107,7 +148,7 @@ int BullOrCow(int guessBoard[], int position, int opponentBoard[], int tempBoard
     return result;
 }
 
-void CheckBoard(Player *owner, Player *opponent)
+void CheckHits(Player *owner, Player *opponent)
 {
     int check;
     int position;
@@ -130,7 +171,7 @@ void CheckBoard(Player *owner, Player *opponent)
     }
 }
 
-void GameManager(Player *p)
+void GameManager(Game *game, Player *p)
 {
     int GameOn = TRUE;
     Player computer;

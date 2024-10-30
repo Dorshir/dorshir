@@ -3,9 +3,6 @@
 
 #define BOARD_SIZE 4
 
-#define FALSE 0
-#define TRUE 1
-
 #define MISS 0
 #define BULL 1
 #define COW 2
@@ -14,11 +11,31 @@ typedef struct Player
 {
     int ownBoard[BOARD_SIZE];
     int guessBoard[BOARD_SIZE];
-    int myTurn;
+    Bool isMyTurn;
     void (*MakeAGuess)(int guessBoard[]);
     int bulls;
     int cows;
     char* name;
+    Bool isComputer;
 } Player;
 
-void GameManager(Player *p);
+typedef struct Game
+{
+    Player* p1;
+    Player* p2;
+    int winner;
+} Game;
+
+typedef enum Bool{
+    FALSE,
+    TRUE
+}Bool;
+
+typedef enum Vs
+{
+    PLAYER,
+    COMPUTER
+} Vs;
+
+
+void GameManager(Game* game, Player *p);

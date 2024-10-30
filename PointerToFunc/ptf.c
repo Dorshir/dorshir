@@ -32,7 +32,7 @@ static char ParseLetter(int digit, int depth)
     int mod;
     static const char *codes[] = {"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
 
-    if (digit < 2 || digit > 9)
+    if (digit < 2)
     {
         return '\0';
     }

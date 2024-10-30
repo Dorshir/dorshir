@@ -42,7 +42,7 @@ void DynamicArrayDestroy(DynamicArray **DynamincArrayPtr)
 
     free((*DynamincArrayPtr)->dArray);
     free(*DynamincArrayPtr);
-    *DynamincArrayPtr == NULL;
+    *DynamincArrayPtr = NULL;
 }
 
 int DynamicArrayInsert(DynamicArray *DynamincArrayPtr, int data)

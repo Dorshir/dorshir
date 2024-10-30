@@ -14,6 +14,7 @@
         "random": "c",
         "algorithm": "c",
         "stdlib.h": "c",
-        "functional": "c"
+        "functional": "c",
+        "dynamicarray.h": "c"
     }
 }
