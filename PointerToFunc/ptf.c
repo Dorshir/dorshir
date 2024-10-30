@@ -6,6 +6,8 @@
 #define NUM_OF_LETTERS(digit) (((digit) == 7 || (digit) == 9) ? 4 : 3)
 #define MAX_NUM_OF_DIGITS 10
 
+/* Help Functions */
+
 static int CountDigits(int num)
 {
     int count = 0;
@@ -52,6 +54,7 @@ static char *ParseWord(int num, char *result)
     int depth = 1;
     int prevDigit = -1;
 
+
     for (int pos = 1; pos <= numOfDigits; pos++)
     {
         int currentDigit = GetDigit(num, pos, numOfDigits);
@@ -77,14 +80,6 @@ static char *ParseWord(int num, char *result)
     return result;
 }
 
-static int CompareNumberToLetterGeneric(void *a, void *b)
-{
-    char resultA[MAX_NUM_OF_DIGITS + 1] = {0};
-    char resultB[MAX_NUM_OF_DIGITS + 1] = {0};
-
-    return (strcmp(ParseWord(*((int *)a), resultA), ParseWord(*((int *)b), resultB)) > 0);
-}
-
 /* Generic */
 
 static int CompareAscendingDoubleGeneric(void *a, void *b)
@@ -101,6 +96,16 @@ static int ComparePersonsByNameGeneric(void *a, void *b)
 {
     return (strcmp(((Person *)a)->name, ((Person *)b)->name) > 0);
 }
+
+static int CompareNumberToLetterGeneric(void *a, void *b)
+{
+    char resultA[MAX_NUM_OF_DIGITS + 1] = {0};
+    char resultB[MAX_NUM_OF_DIGITS + 1] = {0};
+
+    return (strcmp(ParseWord(*((int *)a), resultA), ParseWord(*((int *)b), resultB)) > 0);
+}
+
+/* Prints */
 
 static void PrintIntArray(int *arr, size_t length)
 {

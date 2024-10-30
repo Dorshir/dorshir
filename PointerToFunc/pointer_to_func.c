@@ -1,9 +1,10 @@
 #include "pointer_to_func.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 static void Swap(int *a, int *b);
-static void GenericSwap(void *a, void *b,void* temp, size_t elemSize);
+static void GenericSwap(void *a, void *b, void *temp, size_t elemSize);
 
 /* Main Functions */
 
@@ -37,25 +38,33 @@ int Sort(int *arr, size_t length, cmpFunc comparator)
 
 int GenericSort(void *arr, size_t length, size_t elemSize, cmpFuncGeneric comparator)
 {
-    char i, j;
+    char i, j, currPos;
     int flag;
-    char *ptr = arr;
-    void * temp = malloc(elemSize);
+    char *ptr;
+    void *temp;
 
     if (arr == NULL || comparator == NULL)
     {
         return NULL_PTR_ERROR;
     }
 
+    *ptr = arr;
+    temp = malloc(elemSize);
+    if (temp == NULL)
+    {
+        return ALLOCATION_FAILED;
+    }
+
     for (i = 0; i < length - 1; i++)
     {
         flag = 0;
-        for (j = 0; j < length * elemSize - i - elemSize; j = j + elemSize)
+        for (j = 0; j < length - i - 1; j = j + 1)
         {
-            if (comparator(&ptr[j], &ptr[j + elemSize]))
+            currPos = j * elemSize;
+            if (comparator(&ptr[currPos], &ptr[currPos + elemSize]))
             {
                 flag = 1;
-                GenericSwap(&ptr[j], &ptr[j + elemSize],temp, elemSize);
+                GenericSwap(&ptr[currPos], &ptr[currPos + elemSize], temp, elemSize);
             }
         }
         if (flag == 0)
@@ -69,7 +78,7 @@ int GenericSort(void *arr, size_t length, size_t elemSize, cmpFuncGeneric compar
 
 /* Static Functions */
 
-static void GenericSwap(void *a, void *b,void* temp, size_t elemSize)
+static void GenericSwap(void *a, void *b, void *temp, size_t elemSize)
 {
     memcpy(temp, a, elemSize);
     memcpy(a, b, elemSize);

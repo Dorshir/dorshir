@@ -2,9 +2,9 @@
 #define __POINTER_TO_FUNC__
 #include <stdlib.h>
 
-#define NULL_PTR_ERROR -1
 #define OK 0
-
+#define NULL_PTR_ERROR -1
+#define ALLOCATION_FAILED -2
 
 /**
  * @brief   Decleration of a new type - Compare function - between two integers.
