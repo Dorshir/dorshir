@@ -108,7 +108,7 @@ size_t VectorCapacity(const Vector *_vector);
  * @param[in] _vector - vector to iterate over.
  * @param[in] _action - User provided function pointer to be invoked for each element
  * @param[in] _context - User provided context, will be sent to _action
- * @returns number of times the user functions was invoked
+ * @returns index of the element where condition of _action is 0
  * equevallent to:
  *      for(i = 0; i < VectorSize(v); ++i){
  *             VectorGet(v, i, &elem);

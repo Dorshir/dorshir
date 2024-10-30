@@ -336,13 +336,17 @@ void TestVectorCapacity()
 void TestVectorForEach()
 {
     size_t index;
+    int* retrievedItem;
     Vector *vector = VectorCreate(2, 2);
     int item1 = 1, item2 = 2, item3 = 3;
     VectorAppend(vector, &item1);
     VectorAppend(vector, &item2);
     VectorAppend(vector, &item3);
+
     index = VectorForEach(vector, SearchIntegerElem, &item2);
-    if (index == 1)
+    VectorGet(vector, index, (void **)&retrievedItem);
+    
+    if (index == 1 && *retrievedItem == item2)
     {
         printf("Test VectorForEach: pass\n");
     }
