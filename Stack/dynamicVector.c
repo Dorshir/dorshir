@@ -21,7 +21,7 @@ VectorResult IsValidInputGetSet(const Vector *_vector, size_t _index, void **_pV
 void ShrinkVector(Vector *_vector);
 VectorResult ReallocItems(Vector *_vector);
 
-/************************* Main Functions *************************/
+/* Main Functions */
 
 VectorResult VectorGet(const Vector *_vector, size_t _index, void **_pValue)
 {
@@ -177,7 +177,7 @@ void VectorDestroy(Vector **_vector, void (*_elementDestroy)(void *_item))
     *_vector = NULL;
 }
 
-/************************* Help Functions *************************/
+/* Help Functions */
 
 VectorResult ReallocItems(Vector *_vector)
 {
@@ -238,8 +238,6 @@ VectorResult IsValidInputGetSet(const Vector *_vector, size_t _index, void **_pV
     }
     return result;
 }
-
-/************************* Getters Functions ( For Tests ) *************************/
 
 size_t GetBlockSize(Vector *_vector)
 {
