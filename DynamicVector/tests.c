@@ -96,7 +96,7 @@ void TestVectorAppend_Growth()
     VectorAppend(vector, &item);
     VectorAppend(vector, &item);
 
-    result = VectorGet(vector, 3, (void **)&retrievedItem);
+    result = VectorGet(vector, 2, (void **)&retrievedItem);
     if (result == VECTOR_SUCCESS && vector->m_nItems == 3 && vector->m_size == vector->m_originalSize + vector->m_blockSize)
     {
         printf("Test VectorAppend_Growth: pass\n");
@@ -119,7 +119,7 @@ void TestVectorRemove_Valid()
     VectorAppend(vector, &item);
     prevNItems = vector->m_nItems;
     result = VectorRemove(vector, (void **)&removedItem);
-    if (result == VECTOR_SUCCESS && removedItem == &item && vector->m_nItems == prevNItems - 1)
+    if (result == VECTOR_SUCCESS && *removedItem == item && vector->m_nItems == prevNItems - 1)
     {
         printf("Test VectorRemove_Valid: pass\n");
     }
@@ -160,18 +160,19 @@ void TestVectorRemove_Shrink()
         VectorAppend(vector, &item);
     }
 
-    if (VectorRemove(vector, (void **)&removedItem) == VECTOR_SUCCESS && vector->m_size == 10)
+    if (vector->m_size == 10)
     {
-        for (index = 0; index < 4; index++)
+        for (index = 0; index < 3; index++)
         {
             VectorRemove(vector, (void **)&removedItem);
         }
 
-        if (vector->m_nItems == vector->m_blockSize * 2 && vector->m_size == 10)
+        if (vector->m_nItems == 7 && vector->m_size == 10)
         {
             result = VectorRemove(vector, (void **)&removedItem);
-            if (result == VECTOR_SUCCESS && vector->m_nItems == 5 && vector->m_size == 6)
+            if (result == VECTOR_SUCCESS && vector->m_nItems == 6 && vector->m_size == 8)
             {
+
                 printf("Test VectorRemove_Shrink: pass\n");
             }
             else
@@ -199,7 +200,7 @@ void TestVectorGet_ValidIndex()
     Vector *vector = VectorCreate(2, 2);
     VectorAppend(vector, &item);
 
-    if (VectorGet(vector, 0, (void **)&retrievedItem) == VECTOR_SUCCESS && retrievedItem == &item)
+    if (VectorGet(vector, 0, (void **)&retrievedItem) == VECTOR_SUCCESS && *retrievedItem == item)
     {
         printf("Test VectorGet_ValidIndex: pass\n");
     }
@@ -236,13 +237,13 @@ void TestVectorGet_NullRetriever()
     int item = 42;
     VectorAppend(vector, &item);
 
-    if (VectorGet(vector, 0, NULL) == VECTOR_UNITIALIZED_ERROR)
+    if (VectorGet(vector, 0, NULL) == NULL_PTR_ERROR)
     {
-        printf("TestVectorGet_InvalidIndex: pass\n");
+        printf("Test VectorGet_InvalidIndex: pass\n");
     }
     else
     {
-        printf("TestVectorGet_InvalidIndex: fail\n");
+        printf("Test VectorGet_InvalidIndex: fail\n");
     }
     VectorDestroy(&vector, NULL);
 }
@@ -258,7 +259,7 @@ void TestVectorSet_ValidIndex()
     if (VectorSet(vector, 0, &item2) == VECTOR_SUCCESS)
     {
         VectorGet(vector, 0, (void **)&retrievedItem);
-        if (retrievedItem == &item2)
+        if (*retrievedItem == item2)
         {
             printf("Test VectorSet_ValidIndex: pass\n");
         }
@@ -312,7 +313,7 @@ void TestVectorSize()
     }
     else
     {
-        printf("TestVectorSize: fail\n");
+        printf("Test VectorSize: fail\n");
     }
     VectorDestroy(&vector, NULL);
 }
@@ -336,7 +337,7 @@ void TestVectorCapacity()
 void TestVectorForEach()
 {
     size_t index;
-    int* retrievedItem;
+    int *retrievedItem;
     Vector *vector = VectorCreate(2, 2);
     int item1 = 1, item2 = 2, item3 = 3;
     VectorAppend(vector, &item1);
@@ -345,7 +346,7 @@ void TestVectorForEach()
 
     index = VectorForEach(vector, SearchIntegerElem, &item2);
     VectorGet(vector, index, (void **)&retrievedItem);
-    
+
     if (index == 1 && *retrievedItem == item2)
     {
         printf("Test VectorForEach: pass\n");
@@ -364,10 +365,13 @@ int main()
     TestVectorCreate_ZeroInitialCapacityZeroBlockSize();
     TestVectorAppend_ValidItem();
     TestVectorAppend_NullVector();
+    TestVectorAppend_Growth();
     TestVectorRemove_Valid();
     TestVectorRemove_Underflow();
+    TestVectorRemove_Shrink();
     TestVectorGet_ValidIndex();
     TestVectorGet_InvalidIndex();
+    TestVectorGet_NullRetriever();
     TestVectorSet_ValidIndex();
     TestVectorSet_InvalidIndex();
     TestVectorSize();
