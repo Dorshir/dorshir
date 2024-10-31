@@ -35,7 +35,7 @@ VectorResult VectorGet(const Vector *_vector, size_t _index, void **_pValue)
 
 VectorResult VectorSet(Vector *_vector, size_t _index, void *_value)
 {
-    VectorResult result = IsValidInputGetSet(_vector, _index, &_value);
+    VectorResult result = IsValidInputGetSet(_vector, _index, _value);
     if (result == VECTOR_SUCCESS)
     {
         _vector->m_items[_index] = _value;
@@ -100,7 +100,7 @@ VectorResult VectorRemove(Vector *_vector, void **_pValue)
 VectorResult VectorAppend(Vector *_vector, void *_item)
 {
     void **temp;
-    if (_vector == NULL || _vector->m_items == NULL)
+    if (_vector == NULL)
     {
         return VECTOR_UNITIALIZED_ERROR;
     }
@@ -167,10 +167,9 @@ void VectorDestroy(Vector **_vector, void (*_elementDestroy)(void *_item))
 
     if (_elementDestroy != NULL)
     {
-        for (index = 0; index < (*_vector)->m_nItems ; index++)
+        for (index = 0; index < (*_vector)->m_nItems; index++)
         {
             _elementDestroy(((*_vector)->m_items)[index]);
-
         }
     }
 
@@ -197,7 +196,7 @@ VectorResult ReallocItems(Vector *_vector)
 VectorResult IsValidInputRemove(Vector *_vector, void **_pValue)
 {
     VectorResult result = VECTOR_SUCCESS;
-    if (_vector == NULL || _vector->m_items == NULL)
+    if (_vector == NULL)
     {
         result = VECTOR_UNITIALIZED_ERROR;
     }
@@ -239,4 +238,25 @@ VectorResult IsValidInputGetSet(const Vector *_vector, size_t _index, void **_pV
         result = VECTOR_INDEX_OUT_OF_BOUNDS_ERROR;
     }
     return result;
+}
+
+size_t GetBlockSize(Vector *_vector)
+{
+    return _vector->m_blockSize;
+}
+size_t GetSize(Vector *_vector)
+{
+    return _vector->m_size;
+}
+size_t GetNItems(Vector *_vector)
+{
+    return _vector->m_nItems;
+}
+size_t GetOriginalSize(Vector *_vector)
+{
+    return _vector->m_originalSize;
+}
+void **GetItems(Vector *_vector)
+{
+    return _vector->m_items;
 }
