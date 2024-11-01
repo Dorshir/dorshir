@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* Function declarations for test functions */
-
 /* StackCreate Tests */
 void TestStackCreate_InvalidCapacityAndBlockSize();
 void TestStackCreate_NegativeInitialCapacity();
@@ -56,7 +54,6 @@ void TestStackPrint_NullContext();
 
 int main()
 {
-    /* StackCreate Tests */
     TestStackCreate_InvalidCapacityAndBlockSize();
     TestStackCreate_NegativeInitialCapacity();
     TestStackCreate_NegativeBlockSize();
@@ -64,42 +61,36 @@ int main()
     TestStackCreate_NonZeroInitialCapacity_ZeroBlockSize();
     TestStackCreate_ValidParameters();
 
-    /* StackDestroy Tests */
     TestStackDestroy_ValidStack();
     TestStackDestroy_DoubleDestroy();
     TestStackDestroy_NullElementDestroy();
 
-    /* StackPush Tests */
     TestStackPush_ValidPush();
     TestStackPush_NullStack();
     TestStackPush_NullItem();
-    /* Note: Overflow and allocation failure tests might require modifying the stack implementation to simulate these conditions */
+    TestStackPush_Overflow();
+    TestStackPush_GrowthAllocationFail();
+    TestStackPush_GrowthSuccess();
 
-    /* StackPop Tests */
     TestStackPop_ValidPop();
     TestStackPop_NullStack();
     TestStackPop_NullPValue();
     TestStackPop_EmptyStack();
 
-    /* StackTop Tests */
     TestStackTop_ValidTop();
     TestStackTop_NullStack();
     TestStackTop_NullPValue();
     TestStackTop_EmptyStack();
 
-    /* StackSize Tests */
     TestStackSize_ValidSize();
     TestStackSize_NullStack();
 
-    /* StackCapacity Tests */
     TestStackCapacity_ValidCapacity();
     TestStackCapacity_NullStack();
 
-    /* StackIsEmpty Tests */
     TestStackIsEmpty_NullStack();
     TestStackIsEmpty_ValidScenario();
 
-    /* StackPrint Tests */
     TestStackPrint_NullStackOrAction();
     TestStackPrint_ValidRun();
     TestStackPrint_NullContext();
@@ -107,13 +98,25 @@ int main()
     return 0;
 }
 
-/* Helper function for element action */
+/* Helper functions for element action */
 int PrintElement(void *_element, size_t _index, void *_context)
 {
     return 1;
 }
 
-/* StackCreate Test Implementations */
+int SearchIntegerElem(void *_element, size_t _index, void *_context)
+{
+    if (_context != NULL)
+    {
+        return (*((int *)_element) == *((int *)_context)) ? 0 : 1;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+/* StackCreate Tests */
 
 void TestStackCreate_InvalidCapacityAndBlockSize()
 {
@@ -131,8 +134,6 @@ void TestStackCreate_InvalidCapacityAndBlockSize()
 
 void TestStackCreate_NegativeInitialCapacity()
 {
-    /* Since size_t is unsigned, negative values wrap around to large positive values */
-    /* We'll simulate invalid input by passing a very large value */
     Stack *stack = StackCreate((size_t)-1, 0);
     if (stack == NULL)
     {
@@ -147,7 +148,6 @@ void TestStackCreate_NegativeInitialCapacity()
 
 void TestStackCreate_NegativeBlockSize()
 {
-    /* Similar to above, simulate negative block size */
     Stack *stack = StackCreate(5, (size_t)-1);
     if (stack != NULL)
     {
@@ -202,12 +202,12 @@ void TestStackCreate_ValidParameters()
     }
 }
 
-/* StackDestroy Test Implementations */
+/* StackDestroy Tests */
 
 void TestStackDestroy_ValidStack()
 {
     Stack *stack = StackCreate(5, 5);
-    StackDestroy(&stack, NULL);
+    StackDestroy(&stack, free);
     if (stack == NULL)
     {
         printf("TestStackDestroy_ValidStack: Pass\n");
@@ -221,8 +221,8 @@ void TestStackDestroy_ValidStack()
 void TestStackDestroy_DoubleDestroy()
 {
     Stack *stack = StackCreate(5, 5);
-    StackDestroy(&stack, NULL);
-    StackDestroy(&stack, NULL); /* Should handle gracefully */
+    StackDestroy(&stack, free);
+    StackDestroy(&stack, free);
     printf("TestStackDestroy_DoubleDestroy: Pass\n");
 }
 
@@ -240,16 +240,16 @@ void TestStackDestroy_NullElementDestroy()
     }
 }
 
-/* StackPush Test Implementations */
+/* StackPush Tests */
 
 void TestStackPush_ValidPush()
 {
-    Stack *stack = StackCreate(5, 5);
+    void *topItem = NULL;
     int item = 10;
+    Stack *stack = StackCreate(5, 5);
     StackResult res = StackPush(stack, &item);
     if (res == STACK_SUCCESS)
     {
-        void *topItem = NULL;
         StackTop(stack, &topItem);
         if (topItem == &item && StackSize(stack) == 1)
         {
@@ -296,7 +296,68 @@ void TestStackPush_NullItem()
     StackDestroy(&stack, NULL);
 }
 
-/* StackPop Test Implementations */
+void TestStackPush_Overflow()
+{
+    int item = 10;
+    StackResult res;
+    Stack *stack = StackCreate(2, 0);
+    StackPush(stack, &item);
+    StackPush(stack, &item);
+
+    res = StackPush(stack, &item);
+    if (res == STACK_OVERFLOW)
+    {
+        printf("TestStackPush_Overflow: Pass\n");
+    }
+    else
+    {
+        printf("TestStackPush_Overflow: Fail\n");
+    }
+    StackDestroy(&stack, NULL);
+}
+
+void TestStackPush_GrowthAllocationFail()
+{
+    int item = 10;
+    StackResult res;
+    Stack *stack = StackCreate(2, -3);
+    StackPush(stack, &item);
+    StackPush(stack, &item);
+
+    res = StackPush(stack, &item);
+    if (res == STACK_ALLOCATION_ERROR)
+    {
+        printf("TestStackPush_GrowthAllocationFail: Pass\n");
+    }
+    else
+    {
+        printf("TestStackPush_GrowthAllocationFail: Fail\n");
+    }
+    StackDestroy(&stack, NULL);
+}
+
+void TestStackPush_GrowthSuccess()
+{
+    int item = 10;
+    StackResult res;
+    Stack *stack = StackCreate(2, 2);
+
+    StackPush(stack, &item);
+    StackPush(stack, &item);
+
+    res = StackPush(stack, &item);
+    if (res == STACK_SUCCESS && StackSize(stack) == 3 && StackCapacity(stack) == 4)
+    {
+        printf("TestStackPush_GrowthSuccess: Pass\n");
+    }
+    else
+    {
+        printf("TestStackPush_GrowthSuccess: Fail\n");
+    }
+    StackDestroy(&stack, NULL);
+}
+
+/* StackPop Tests */
 
 void TestStackPop_ValidPop()
 {
@@ -366,7 +427,7 @@ void TestStackPop_EmptyStack()
     StackDestroy(&stack, NULL);
 }
 
-/* StackTop Test Implementations */
+/* StackTop Tests */
 
 void TestStackTop_ValidTop()
 {
@@ -434,18 +495,18 @@ void TestStackTop_EmptyStack()
     StackDestroy(&stack, NULL);
 }
 
-/* StackSize Test Implementations */
+/* StackSize Tests */
 
 void TestStackSize_ValidSize()
 {
     Stack *stack = StackCreate(5, 5);
-    int* ret;
+    int *ret;
     int item1 = 10, item2 = 20;
     StackPush(stack, &item1);
     StackPush(stack, &item2);
     if (StackSize(stack) == 2)
     {
-        StackPop(stack, (void**)&ret);
+        StackPop(stack, (void **)&ret);
         if (StackSize(stack) == 1)
         {
             printf("TestStackSize_ValidSize: Pass\n");
@@ -474,7 +535,7 @@ void TestStackSize_NullStack()
     }
 }
 
-/* StackCapacity Test Implementations */
+/* StackCapacity Tests */
 
 void TestStackCapacity_ValidCapacity()
 {
@@ -502,7 +563,7 @@ void TestStackCapacity_NullStack()
     }
 }
 
-/* StackIsEmpty Test Implementations */
+/* StackIsEmpty Tests */
 
 void TestStackIsEmpty_NullStack()
 {
@@ -520,7 +581,7 @@ void TestStackIsEmpty_ValidScenario()
 {
     int item = 10;
     Stack *stack = StackCreate(5, 5);
-    
+
     if (StackIsEmpty(stack) == 1)
     {
         StackPush(stack, &item);
@@ -540,7 +601,7 @@ void TestStackIsEmpty_ValidScenario()
     StackDestroy(&stack, NULL);
 }
 
-/* StackPrint Test Implementations */
+/* StackPrint Tests */
 
 void TestStackPrint_NullStackOrAction()
 {
@@ -567,14 +628,14 @@ void TestStackPrint_NullStackOrAction()
 
 void TestStackPrint_ValidRun()
 {
-    size_t numItems;
+    size_t index;
     int item1 = 10, item2 = 20;
     Stack *stack = StackCreate(5, 5);
 
     StackPush(stack, &item1);
     StackPush(stack, &item2);
-    numItems = StackPrint(stack, PrintElement, NULL);
-    if (numItems == 2)
+    index = StackPrint(stack, PrintElement, NULL);
+    if (index == StackSize(stack))
     {
         printf("TestStackPrint_ValidRun: Pass\n");
     }
@@ -587,19 +648,44 @@ void TestStackPrint_ValidRun()
 
 void TestStackPrint_NullContext()
 {
-    size_t numItems;
+    size_t index;
     int item1 = 10;
     Stack *stack = StackCreate(5, 5);
-    
+
     StackPush(stack, &item1);
-    numItems = StackPrint(stack, PrintElement, NULL);
-    if (numItems == 1)
+    StackPush(stack, &item1);
+    StackPush(stack, &item1);
+
+    index = StackPrint(stack, PrintElement, NULL);
+    if (index == StackSize(stack))
     {
         printf("TestStackPrint_NullContext: Pass\n");
     }
     else
     {
         printf("TestStackPrint_NullContext: Fail\n");
+    }
+    StackDestroy(&stack, NULL);
+}
+
+void TestStackPrint_BreakTrigger()
+{
+    size_t index;
+    int item1 = 1, item2 = 2, item3 = 3;
+    Stack *stack = StackCreate(5, 5);
+
+    StackPush(stack, &item1);
+    StackPush(stack, &item2);
+    StackPush(stack, &item3);
+
+    index = StackPrint(stack, SearchIntegerElem, &item2);
+    if (index == StackSize(stack) - 1)
+    {
+        printf("TestStackPrint_BreakTrigger: Pass\n");
+    }
+    else
+    {
+        printf("TestStackPrint_BreakTrigger: Fail\n");
     }
     StackDestroy(&stack, NULL);
 }
