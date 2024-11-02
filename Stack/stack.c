@@ -1,6 +1,6 @@
 #include "stack.h"
 #include "dynamicVector.h"
-#include <stdlib.h> /* size_t, malloc, realloc */
+#include <stdlib.h> /* size_t, dynamic memory */
 
 struct Stack
 {
@@ -42,11 +42,9 @@ void StackDestroy(Stack **_stack, void (*_elementDestroy)(void *_item))
     {
         return;
     }
-    if (_elementDestroy != NULL)
-    {
-        VectorDestroy(&(*_stack)->m_vector, _elementDestroy);
-    }
-
+    
+    VectorDestroy(&(*_stack)->m_vector, _elementDestroy);
+    
     free(*_stack);
     *_stack = NULL;
 }
@@ -106,7 +104,7 @@ int StackIsEmpty(Stack *_stack)
 {
     if (_stack == NULL)
     {
-        return -1;
+        return 1;
     }
     return VectorSize(_stack->m_vector) == 0;
 }
