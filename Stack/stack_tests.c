@@ -134,7 +134,8 @@ void TestStackCreate_InvalidCapacityAndBlockSize()
 
 void TestStackCreate_NegativeInitialCapacity()
 {
-    Stack *stack = StackCreate((size_t)-1, 0);
+    /* -1 -> fail allocation */
+    Stack *stack = StackCreate(-1, 0);
     if (stack == NULL)
     {
         printf("TestStackCreate_NegativeInitialCapacity: Pass\n");
@@ -223,7 +224,14 @@ void TestStackDestroy_DoubleDestroy()
     Stack *stack = StackCreate(5, 5);
     StackDestroy(&stack, free);
     StackDestroy(&stack, free);
-    printf("TestStackDestroy_DoubleDestroy: Pass\n");
+    if (stack == NULL)
+    {
+        printf("TestStackDestroy_DoubleDestroy: Pass\n");
+    }
+    else
+    {
+        printf("TestStackDestroy_DoubleDestroy: Fail\n");
+    }
 }
 
 void TestStackDestroy_NullElementDestroy()
@@ -567,7 +575,7 @@ void TestStackCapacity_NullStack()
 
 void TestStackIsEmpty_NullStack()
 {
-    if (StackIsEmpty(NULL) == -1)
+    if (StackIsEmpty(NULL) == 1)
     {
         printf("TestStackIsEmpty_NullStack: Pass\n");
     }

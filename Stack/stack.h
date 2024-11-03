@@ -91,7 +91,6 @@ size_t StackCapacity(const Stack* _stack);
  * @param[in] _stack - Stack to check.
  * @return  TRUE (1) - if empty or ERROR
 	    FALSE(0) - if not empty	
-        -1 - if _stack is null		
  */
 int StackIsEmpty(Stack* _stack);
 

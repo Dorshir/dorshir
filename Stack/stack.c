@@ -53,7 +53,7 @@ StackResult StackPush(Stack *_stack, void *_item)
 {
     if (_stack == NULL)
     {
-        return VECTOR_UNITIALIZED_ERROR;
+        return STACK_UNITIALIZED_ERROR;
     }
     else if (_item == NULL)
     {
