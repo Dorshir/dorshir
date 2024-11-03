@@ -99,6 +99,7 @@ int main()
 }
 
 /* Helper functions for element action */
+
 int PrintElement(void *_element, size_t _index, void *_context)
 {
     return 1;
