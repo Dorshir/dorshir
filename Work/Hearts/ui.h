@@ -3,6 +3,5 @@
 
 
 void PrintMessage(char *_message);
-void GetInput(char *_message);
 
 #endif /* __UI_H__ */

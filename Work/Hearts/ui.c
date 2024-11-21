@@ -10,12 +10,3 @@ void PrintMessage(char *_message)
     }
     printf("%s", _message);
 }
-
-void GetInput(char **_message)
-{
-    if (_message == NULL)
-    {
-        return;
-    }
-    
-}

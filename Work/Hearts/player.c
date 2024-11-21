@@ -6,7 +6,6 @@
 #include <stdlib.h> /* malloc, free, size_t */
 #include <string.h> /* strdup */
 
-
 #define TRUE 1
 #define FALSE 0
 #define NOT_FOUND -1
@@ -23,15 +22,14 @@ struct Player
 
 static PlayerResult InitCardsVector(Player *_player);
 static int CardComparator(void *_left, void *_right);
-static PlayerResult CheckInputThrowCard(Player *_player, void **_pValue);
+static PlayerResult CheckInputThrowCard(Player *_player, Card **_pValue);
 static BSTreeItr ChooseCard(Player *_player);
 static BSTreeItr GetFirstCardExist(Player *_player);
 static void RevealCards(Player *_player);
 static void BuildCardMessage(Card *_card, char *_cardDetails);
 static BSTreeItr GetValidCard(Player *_player, Card **_table, RulesFunction _rulesFunc, void *_rulesContext);
-static void GetValidCardsMachine(Player *_player, Card **_table, Card **_validCards, RulesFunction _rulesFunc, void *_rulesContext);
+static size_t GetValidCardsMachine(Player *_player, Card **_table, Card **_validCards, RulesFunction _rulesFunc, void *_rulesContext);
 static Card **GetValidCardListMachine(Player *_player, Card **_table, RulesFunction _rulesFunc, void *_rulesContext);
-
 
 /* API Functions */
 
@@ -79,7 +77,7 @@ void DestroyPlayer(Player **_player)
             BSTreeDestroy(&tree, free); /* MAYBE CARDS WILL BE DESTROYED SOMWHERE ELSE? */
         }
 
-        free((*_player)->m_cards);
+        VectorDestroy(&((*_player)->m_cards), NULL);
         free((*_player)->m_name);
         free(*_player);
         *_player = NULL;
@@ -134,6 +132,13 @@ PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, RulesFunc
 
         /* Currently just throwing the first card you see... */
         cardToThrow = GetFirstCardExist(_player);
+
+        free(validCards);
+    }
+
+    if (cardToThrow == NULL)
+    {
+        return PLAYER_EMPTY_CARDS;
     }
 
     *_pValue = BSTreeItrRemove(cardToThrow);
@@ -147,7 +152,7 @@ int FindCard(Player *_player, Card *_desiredCard)
     size_t cardIndex = 0;
     if (_player == NULL || _desiredCard == NULL)
     {
-        return NOT_FOUND;
+        return PLAYER_CARD_NOT_FOUND;
     }
 
     for (size_t suit = HEARTS; suit < NUMBER_OF_SUITS; suit++)
@@ -223,12 +228,13 @@ static BSTreeItr GetFirstCardExist(Player *_player)
         if (HAS_CARDS_FOR_THIS_SUIT(begin, end))
         {
             cardToThrow = begin;
+            break;
         }
     }
     return cardToThrow;
 }
 
-static PlayerResult CheckInputThrowCard(Player *_player, void **_pValue)
+static PlayerResult CheckInputThrowCard(Player *_player, Card **_pValue)
 {
     PlayerResult result = PLAYER_SUCCESS;
     if (_player == NULL || _pValue == NULL)
@@ -296,7 +302,7 @@ static BSTreeItr GetValidCard(Player *_player, Card **_table, RulesFunction _rul
     return cardToThrow;
 }
 
-static void GetValidCardsMachine(Player *_player, Card **_table, Card **_validCards, RulesFunction _rulesFunc, void *_rulesContext)
+static size_t GetValidCardsMachine(Player *_player, Card **_table, Card **_validCards, RulesFunction _rulesFunc, void *_rulesContext)
 {
     BSTree *currBSTreeSuit;
     size_t cardIndex = 0;
@@ -316,6 +322,7 @@ static void GetValidCardsMachine(Player *_player, Card **_table, Card **_validCa
             begin = BSTreeItrNext(begin);
         }
     }
+    return cardIndex;
 }
 
 static Card **GetValidCardListMachine(Player *_player, Card **_table, RulesFunction _rulesFunc, void *_rulesContext)
@@ -332,7 +339,7 @@ static Card **GetValidCardListMachine(Player *_player, Card **_table, RulesFunct
         return NULL;
     }
 
-    GetValidCardsMachine(_player, _table, validCards, _rulesFunc, _rulesContext);
+    size_t validCardCount = GetValidCardsMachine(_player, _table, validCards, _rulesFunc, _rulesContext);
 
     return validCards;
 }
