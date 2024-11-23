@@ -141,14 +141,14 @@ static Deck *AllocateMemoryDeck(size_t _numOfDecks, size_t _numOfCards)
     return newDeck;
 }
 
-static void SwapCards(Vector *_cards, size_t _i, size_t _j)
+static void SwapCards(Vector *_cards, size_t _firstIndex, size_t _secondIndex)
 {
     void *cardI;
     void *cardJ;
 
-    VectorGet(_cards, _i, &cardI);
-    VectorGet(_cards, _j, &cardJ);
+    VectorGet(_cards, _firstIndex, &cardI);
+    VectorGet(_cards, _secondIndex, &cardJ);
 
-    VectorSet(_cards, _i, cardJ);
-    VectorSet(_cards, _j, cardI);
+    VectorSet(_cards, _firstIndex, cardJ);
+    VectorSet(_cards, _secondIndex, cardI);
 }

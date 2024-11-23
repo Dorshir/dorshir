@@ -13,7 +13,9 @@
 #define NUM_OF_CARDS_PASS 3
 #define NUM_OF_TRICKS 13
 #define END_GAME_SCORE 100
-
+#define MAX_SYMBOL_SIZE 10
+#define MAX_RANK_SIZE 10
+#define MAX_MESSAGE_SIZE 30
 #define ROUND_NOT_FOUND -1
 
 #define IS_FIRST_TRICK(trick) (trick == 0)
@@ -60,6 +62,7 @@ typedef struct RulesContext
 typedef struct StrategyContext
 {
     size_t m_trickNum;
+    Bool m_heartsHasBeenBroken;
 } StrategyContext;
 
 static RoundResult DealCards(Round *_round, Deck *_deck);
@@ -76,16 +79,16 @@ int IsValidCard(Card *_card, Card **_table, void *_context);
 static void PrintCard(Card *_card);
 static void PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext);
 static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openingPlayerNum, size_t *_score, RulesContext *_rulesContext);
-
-Card *GetOptCard(Card **_cards, Card **_table, void *_context)
-{
-    return _cards[0];
-}
-
-Card *GetOptCardPass(Card **_cards, Card **_table, void *_context)
-{
-    return _cards[0];
-}
+static size_t CountSuitCards(Card **_cards, Suit _suit);
+static void SortCardsDescending(Card **_cards, size_t _numCards);
+static size_t GetNumOfCards(Card **_cards);
+static Card *GetLowestHigherCard(Card **_cards, size_t _numCards, Card *_refCard);
+static Card *GetHighestCardOfSuit(Card **_cards, size_t _numCards, Suit _suit);
+static Card *GetHighestCard(Card **_cards, size_t _numCards);
+static Card *GetLowestCard(Card **_cards, size_t _numCards);
+static Card *GetLowestCardOfSuit(Card **_cards, size_t _numCards, Suit _suit);
+Card *GetOptCard(Card **_cards, Card **_table, void *_context);
+Card *GetOptCardPass(Card **_cards, Card **_table, void *_context);
 
 /* API Functions */
 
@@ -155,6 +158,75 @@ RoundResult Play(Round *_round, size_t _roundNum)
 
     DestroyDeck(&deck);
     return ROUND_SUCCESS;
+}
+
+size_t *IsThereAWinner(Round *_round, size_t *_numWinners)
+{
+    if (_round == NULL || _numWinners == NULL)
+    {
+        return NULL;
+    }
+
+    *_numWinners = 0;
+
+    int isGameOver = FALSE;
+    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
+    {
+        if (_round->m_scores[i] >= END_GAME_SCORE)
+        {
+            isGameOver = TRUE;
+            break;
+        }
+    }
+
+    if (!isGameOver)
+    {
+        return NULL;
+    }
+
+    size_t minScore = SIZE_MAX;
+    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
+    {
+        if (_round->m_scores[i] < minScore)
+        {
+            minScore = _round->m_scores[i];
+        }
+    }
+
+    size_t *winnerIndices = malloc(_round->m_numOfPlayers * sizeof(size_t));
+    if (winnerIndices == NULL)
+    {
+        return NULL;
+    }
+
+    size_t winnerCount = 0;
+    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
+    {
+        if (_round->m_scores[i] == minScore)
+        {
+
+            winnerIndices[winnerCount++] = i;
+        }
+    }
+    *_numWinners = winnerCount;
+    return winnerIndices;
+}
+
+void PrintScores(Round *_round)
+{
+    if (_round == NULL)
+    {
+        return;
+    }
+
+    PrintMessage("Scores:\n");
+    for (size_t index = 0; index < _round->m_numOfPlayers; index++)
+    {
+        char message[MAX_MESSAGE_SIZE];
+        sprintf(message, "%s : %zu\n", PlayerGetName(_round->m_players[index]), _round->m_scores[index]);
+        PrintMessage(message);
+    }
+    PrintMessage("\n");
 }
 
 /* Static Functions */
@@ -373,9 +445,9 @@ static void PrintCard(Card *_card)
     {
         return;
     }
-    char symb[10] = "";
-    char rank[10] = "";
-    char message[30] = "";
+    char symb[MAX_SYMBOL_SIZE] = "";
+    char rank[MAX_RANK_SIZE] = "";
+    char message[MAX_MESSAGE_SIZE] = "";
 
     GetSymb(symb, _card->m_suit);
 
@@ -407,15 +479,15 @@ static void PrintCard(Card *_card)
     PrintMessage(NORMAL);
 }
 
-static void PrintTable(Card **_tableCards, size_t _numCardsOnTable)
+static void PrintTable(Card **_tableCards, size_t __numCardsOnTable)
 {
-    if (_numCardsOnTable == 0)
+    if (__numCardsOnTable == 0)
     {
         return;
     }
 
     PrintMessage("Table: ");
-    for (size_t index = 0; index < _numCardsOnTable; index++)
+    for (size_t index = 0; index < __numCardsOnTable; index++)
     {
         if (_tableCards[index] != NULL)
         {
@@ -432,6 +504,10 @@ static RoundResult PlayTrick(Round *_round, Card **_tableCards, StrategyContext 
     {
         size_t relativeIndex = GET_RELATIVE_INDEX(playerNum, _rulesContext, _round);
 
+        if (playerNum > 0)
+        {
+            _rulesContext->m_hasTrickSuitCards = PlayerHasSuit(_round->m_players[relativeIndex], _rulesContext->m_trickSuit) ? 1 : 0;
+        }
         if (ThrowCard(_round->m_players[relativeIndex], &_tableCards[playerNum], _tableCards,
                       PrintCard, IsValidCard, GetOptCard, _rulesContext, _strategyContext) != PLAYER_SUCCESS)
         {
@@ -446,7 +522,12 @@ static RoundResult PlayTrick(Round *_round, Card **_tableCards, StrategyContext 
         ++_rulesContext->m_numOfCardsOnTable;
 
         PrintTable(_tableCards, _rulesContext->m_numOfCardsOnTable);
+
+        _rulesContext->m_hasTrickSuitCards = 0;
     }
+
+    ++_strategyContext->m_trickNum;
+    _strategyContext->m_heartsHasBeenBroken = _rulesContext->m_heartsHasBeenBroken;
 
     _rulesContext->m_openingPlayerNum = UpdateScore(_round, _tableCards, _rulesContext);
 
@@ -494,7 +575,7 @@ static RoundResult StartRound(Round *_round, RoundNum _roundNum)
         rulesContext.m_numOfCardsOnTable = 0;
         rulesContext.m_trickNum = trickNum;
 
-        char message[50];
+        char message[MAX_MESSAGE_SIZE];
         sprintf(message, "Round [%zu] | Trick [%zu/%d]\n", roundCounter, trickNum + 1, NUM_OF_TRICKS);
         PrintMessage(message);
 
@@ -513,60 +594,124 @@ static RoundResult StartRound(Round *_round, RoundNum _roundNum)
     return ROUND_SUCCESS;
 }
 
-size_t *IsThereAWinner(Round *_round, size_t *_numWinners)
+static size_t CountSuitCards(Card **_cards, Suit _suit)
 {
-    if (_round == NULL || _numWinners == NULL)
+    size_t count = 0;
+    size_t _numCards = GetNumOfCards(_cards);
+    for (size_t i = 0; i < _numCards; i++)
     {
-        return NULL;
-    }
-
-    *_numWinners = 0;
-
-    int isGameOver = FALSE;
-    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
-    {
-        if (_round->m_scores[i] >= END_GAME_SCORE)
+        if (_cards[i]->m_suit == _suit)
         {
-            isGameOver = TRUE;
-            break;
+            count++;
         }
     }
-
-    if (!isGameOver)
-    {
-        return NULL;
-    }
-
-    size_t minScore = SIZE_MAX;
-    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
-    {
-        if (_round->m_scores[i] < minScore)
-        {
-            minScore = _round->m_scores[i];
-        }
-    }
-
-    size_t *winnerIndices = malloc(_round->m_numOfPlayers * sizeof(size_t));
-    if (winnerIndices == NULL)
-    {
-        return NULL;
-    }
-
-    size_t winnerCount = 0;
-    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
-    {
-        if (_round->m_scores[i] == minScore)
-        {
-
-            winnerIndices[winnerCount++] = i;
-        }
-    }
-    printf("%ld\n", winnerIndices[winnerCount]);
-    *_numWinners = winnerCount;
-    return winnerIndices;
+    return count;
 }
 
-/* Rules and Strategy */
+static void SortCardsDescending(Card **_cards, size_t _numCards)
+{
+    for (size_t i = 1; i < _numCards; i++)
+    {
+        Card *key = _cards[i];
+        size_t j = i;
+        while (j > 0 && _cards[j - 1]->m_rank < key->m_rank)
+        {
+            _cards[j] = _cards[j - 1];
+            j--;
+        }
+        _cards[j] = key;
+    }
+}
+
+static size_t GetNumOfCards(Card **_cards)
+{
+    size_t count = 0;
+    if (_cards == NULL)
+    {
+        return 0;
+    }
+    while (_cards[count] != NULL)
+    {
+        count++;
+    }
+    return count - 1;
+}
+
+static Card *GetLowestHigherCard(Card **_cards, size_t _numCards, Card *_refCard)
+{
+    Card *candidate = NULL;
+    for (size_t i = 0; i < _numCards; i++)
+    {
+        if (_cards[i]->m_suit == _refCard->m_suit && _cards[i]->m_rank > _refCard->m_rank)
+        {
+            if (!candidate || _cards[i]->m_rank < candidate->m_rank)
+            {
+                candidate = _cards[i];
+            }
+        }
+    }
+    return candidate;
+}
+
+static Card *GetHighestCardOfSuit(Card **_cards, size_t _numCards, Suit _suit)
+{
+    Card *highest = NULL;
+    for (size_t i = 0; i < _numCards; i++)
+    {
+        if (_cards[i]->m_suit == _suit)
+        {
+            if (!highest || _cards[i]->m_rank > highest->m_rank)
+            {
+                highest = _cards[i];
+            }
+        }
+    }
+    return highest;
+}
+
+static Card *GetHighestCard(Card **_cards, size_t _numCards)
+{
+    Card *highest = _cards[0];
+    for (size_t i = 1; i < _numCards; i++)
+    {
+        if (_cards[i]->m_rank > highest->m_rank)
+        {
+            highest = _cards[i];
+        }
+    }
+    return highest;
+}
+
+static Card *GetLowestCard(Card **_cards, size_t _numCards)
+{
+    Card *lowest = _cards[0];
+    for (size_t i = 1; i < _numCards; i++)
+    {
+        if (_cards[i]->m_rank < lowest->m_rank)
+        {
+            lowest = _cards[i];
+        }
+    }
+    return lowest;
+}
+
+static Card *GetLowestCardOfSuit(Card **_cards, size_t _numCards, Suit _suit)
+{
+    Card *lowest = NULL;
+    for (size_t i = 0; i < _numCards; i++)
+    {
+        if (_cards[i]->m_suit == _suit)
+        {
+            if (!lowest || _cards[i]->m_rank < lowest->m_rank)
+            {
+                lowest = _cards[i];
+            }
+        }
+    }
+    return lowest;
+}
+
+/* Rules */
 
 int IsValidCard(Card *_card, Card **_table, void *_context)
 {
@@ -580,12 +725,18 @@ int IsValidCard(Card *_card, Card **_table, void *_context)
     {
         if (IS_EMPTY_TABLE(rules) && !IS_TWO_OF_CLUBS(_card))
         {
-            // PrintMessage("First trick must start with Two of Clubs.\n");
+            PrintMessage("First trick must start with Two of Clubs.\n");
             return FALSE;
         }
         else if (IS_HEART_SUIT(_card) || IS_QUEEN_OF_SPADES(_card))
         {
-            // PrintMessage("Cannot play Hearts or Queen of Spades on the first trick.\n");
+            PrintMessage("Cannot play Hearts or Queen of Spades on the first trick.\n");
+            return FALSE;
+        }
+        Card *openingCard = _table[rules->m_openingPlayerNum];
+        if (openingCard != NULL && !ARE_SAME_SUIT(_card, openingCard) && rules->m_hasTrickSuitCards)
+        {
+            PrintMessage("Must follow suit if you have a card of the same suit.\n");
             return FALSE;
         }
     }
@@ -611,19 +762,113 @@ int IsValidCard(Card *_card, Card **_table, void *_context)
     return TRUE;
 }
 
-void PrintScores(Round *_round)
+/* Strategy */
+
+Card *GetOptCard(Card **_cards, Card **_table, void *_context)
 {
-    if (_round == NULL)
+
+    RulesContext *rules = (RulesContext *)_context;
+    size_t _numCards = GetNumOfCards(_cards);
+
+    /* 1. If leading the trick */
+    if (IS_EMPTY_TABLE(rules))
     {
-        return;
+        Card *selectedCard = NULL;
+        /* 1.1 Find suits with less than 2 cards */
+        Suit suits[] = {HEARTS, DIAMONDS, CLUBS, SPADES};
+        for (int s = 0; s < NUMBER_OF_SUITS; s++)
+        {
+            size_t suitCount = CountSuitCards(_cards, suits[s]);
+            if (suitCount > 0 && suitCount < 2)
+            {
+                selectedCard = GetLowestCardOfSuit(_cards, _numCards, suits[s]);
+                break;
+            }
+        }
+        if (!selectedCard)
+        {
+            /* 1.2 No suit with less than 2 cards, pick lowest card from any suit */
+            selectedCard = GetLowestCard(_cards, _numCards);
+        }
+        return selectedCard;
+    }
+    else
+    {
+        /* 2. Following the trick */
+        // Card *highestTableCard = GetHighestCardOfSuit(_table, rules->m_numOfCardsOnTable, rules->m_trickSuit);
+        Card *selectedCard = NULL;
+
+        // /* 2.1 Check if player has cards of the leading suit */
+        // int hasLeadingSuit = CountSuitCards(_cards, rules->m_trickSuit) > 0;
+
+        // if (hasLeadingSuit)
+        // {
+        //     /* 2.1.1 Try to play the lowest card higher than highest on table */
+        //     selectedCard = GetLowestHigherCard(_cards, _numCards, highestTableCard);
+        //     if (!selectedCard)
+        //     {
+        //         /* 2.1.2 No higher card, play lowest card of leading suit */
+        //         selectedCard = GetLowestCardOfSuit(_cards, _numCards, rules->m_trickSuit);
+        //     }
+        // }
+        // else
+        // {
+            // /* 2.2 Dont have leading suit, try play highest hearts */
+            // size_t heartCount = CountSuitCards(_cards, HEARTS);
+            // if (heartCount > 0)
+            // {
+            //     selectedCard = GetHighestCardOfSuit(_cards, _numCards, HEARTS);
+            // }
+            // else
+            // {
+            /* 2.3 Play highest of others */
+            selectedCard = GetHighestCard(_cards, _numCards);
+            // }
+        // }
+        return selectedCard;
+    }
+}
+
+Card *GetOptCardPass(Card **_cards, Card **_table, void *_context)
+{
+
+    if (_cards == NULL)
+    {
+        return NULL;
     }
 
-    PrintMessage("Scores:\n");
-    for (size_t index = 0; index < _round->m_numOfPlayers; index++)
+    size_t _numCards = GetNumOfCards(_cards);
+
+    /* 1. Pass the Queen of Spades if present */
+    for (size_t i = 0; i < _numCards; i++)
     {
-        char message[50];
-        sprintf(message, "%s with score of %zu\n", PlayerGetName(_round->m_players[index]), _round->m_scores[index]);
-        PrintMessage(message);
+        if (IS_QUEEN_OF_SPADES(_cards[i]))
+        {
+            return _cards[i];
+        }
     }
-    PrintMessage("\n");
+
+    /* 2. Pass suits with less than 3 cards */
+    Suit suits[] = {HEARTS, DIAMONDS, CLUBS, SPADES};
+    for (int s = 0; s < NUMBER_OF_SUITS; s++)
+    {
+        size_t suitCount = CountSuitCards(_cards, suits[s]);
+        if (suitCount > 0 && suitCount < 3)
+        {
+            for (size_t i = 0; i < _numCards; i++)
+            {
+                if (_cards[i]->m_suit == suits[s])
+                {
+                    return _cards[i];
+                }
+            }
+        }
+    }
+
+    /* 3. Pass highest cards if still need to pass more */
+
+    /* Sort remaining cards in descending order */
+    SortCardsDescending(_cards, _numCards);
+
+    return _cards[0];
 }

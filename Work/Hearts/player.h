@@ -39,4 +39,6 @@ int FindCard(Player *_player, Card *_desiredCard);
 
 const char *PlayerGetName(const Player *_player);
 
+int PlayerHasSuit(Player *_player, Suit _suit);
+
 #endif /* __PLAYER_H__ */

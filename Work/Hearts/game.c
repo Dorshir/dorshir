@@ -7,6 +7,8 @@
 #include <string.h> /* strcmp */
 #include <stdio.h>  /* sprintf */
 
+#define MAX_MESSAGE_SIZE 30
+
 struct Game
 {
     Player **m_players;
@@ -17,7 +19,6 @@ struct Game
 
 static void DestroyPlayers(Game *_game);
 static PlayerResult CreatePlayers(Game *_game, size_t _numOfComputerPlayers, size_t _numOfHumanPlayers, char **_playerNames);
-static size_t FindPlayerIndex(Game *_game, char *_name);
 static Game *AllocateMemoryGame(size_t _numOfHumanPlayers, size_t _numOfComputerPlayers, char **_playerNames);
 static GameResult StatusConverter(RoundResult _status);
 static void PrintWinners(Game *_game, size_t _numWinners, size_t *_winnerIndices);
@@ -126,21 +127,6 @@ static PlayerResult CreatePlayers(Game *_game, size_t _numOfComputerPlayers, siz
     return PLAYER_SUCCESS;
 }
 
-static size_t FindPlayerIndex(Game *_game, char *_name)
-{
-    size_t index;
-    const char *playerName;
-    for (index = 0; index < _game->m_numOfPlayers; index++)
-    {
-        playerName = PlayerGetName((_game->m_players[index]));
-        if (strcmp(playerName, _name) == 0)
-        {
-            break;
-        }
-    }
-    return index;
-}
-
 static Game *AllocateMemoryGame(size_t _numOfHumanPlayers, size_t _numOfComputerPlayers, char **_playerNames)
 {
     size_t totalNumOfPlayers;
@@ -208,7 +194,7 @@ static void PrintWinners(Game *_game, size_t _numWinners, size_t *_winnerIndices
         const char *playerName = PlayerGetName(_game->m_players[_winnerIndices[index]]);
         if (playerName != NULL)
         {
-            char message[50];
+            char message[MAX_MESSAGE_SIZE];
             sprintf(message, "%s\n", playerName);
             PrintMessage(message);
         }

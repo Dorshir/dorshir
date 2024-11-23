@@ -1,23 +1,37 @@
 #include "game.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "ui.h"
+#include <stdio.h>  /* fgets */
+#include <string.h> /* strcspn */
+
+#define MAX_LENGTH_NAME 30
+#define NUM_OF_PLAYERS 4
 
 int main()
 {
-    char *playerNames[] = {"Bob", "Alice", "Robert", "Emily"};
-    Game *game = CreateGame(1, 3, playerNames);
+    char name[MAX_LENGTH_NAME] = {0};
+    PrintMessage("Please enter a name: ");
+    fgets(name, MAX_LENGTH_NAME, stdin);
+    char *playerNames[NUM_OF_PLAYERS];
 
+    name[strlen(name) - 1] = '\0';
+    playerNames[0] = name;
+    playerNames[1] = "Alice";
+    playerNames[2] = "Bob";
+    playerNames[3] = "Robert";
+
+    PrintMessage("Welcome to Hearts ");
+    PrintMessage(name);
+    PrintMessage("!\n");
+
+    PrintMessage("\n");
+    Game *game = CreateGame(1, 3, playerNames);
     if (game == NULL)
     {
-        printf("Failed on creating a game.\n");
-        return 0;
+        PrintMessage("Failed on creating a game.\n");
     }
-
-    GameResult playRes = PlayGame(game);
-
-    if (playRes != GAME_SUCCESS)
+    else if (PlayGame(game) != GAME_SUCCESS)
     {
-        printf("Failed on PlayGame.");
+        PrintMessage("Failed on playing the game.\n");
     }
 
     return 0;

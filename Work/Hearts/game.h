@@ -3,7 +3,6 @@
 
 #include <stddef.h> /* size_t */
 
-
 typedef struct Game Game;
 
 typedef enum Game_Result
@@ -22,6 +21,5 @@ Game *CreateGame(size_t _numOfHumanPlayers, size_t _numOfComputerPlayers, char *
 void DestroyGame(Game **_game);
 
 GameResult PlayGame(Game *_game);
-
 
 #endif /* __GAME_H__ */

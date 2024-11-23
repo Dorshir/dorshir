@@ -17,6 +17,7 @@
         "functional": "c",
         "dynamicarray.h": "c",
         "system_error": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "type_traits": "c"
     }
 }
