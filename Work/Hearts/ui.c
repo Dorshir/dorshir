@@ -10,3 +10,4 @@ void PrintMessage(char *_message)
     }
     printf("%s", _message);
 }
+

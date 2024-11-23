@@ -13,8 +13,11 @@ typedef enum Deck_Result
 } DeckResult;
 
 Deck *CreateDeck(size_t _numOfDecks);
+
 void DestroyDeck(Deck **_deck);
 
 DeckResult GetACard(Deck *_deck, void **_pValue);
+
+DeckResult ShuffleDeck(Deck *_deck);
 
 #endif /* __DECK_H__ */

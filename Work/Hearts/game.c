@@ -1,11 +1,11 @@
 #include "game.h"
 #include "player.h"
 #include "round.h"
+#include "ui.h"
 #include <stdint.h> /* SIZE_MAX */
 #include <stdlib.h> /* calloc, malloc, free, size_t */
 #include <string.h> /* strcmp */
-
-#include <stdio.h> /* TEMP */
+#include <stdio.h>  /* sprintf */
 
 struct Game
 {
@@ -15,13 +15,12 @@ struct Game
     size_t m_numOfPlayers;
 };
 
-char *PlayerGetName(Player *_player);
-
 static void DestroyPlayers(Game *_game);
 static PlayerResult CreatePlayers(Game *_game, size_t _numOfComputerPlayers, size_t _numOfHumanPlayers, char **_playerNames);
 static size_t FindPlayerIndex(Game *_game, char *_name);
 static Game *AllocateMemoryGame(size_t _numOfHumanPlayers, size_t _numOfComputerPlayers, char **_playerNames);
 static GameResult StatusConverter(RoundResult _status);
+static void PrintWinners(Game *_game, size_t _numWinners, size_t *_winnerIndices);
 
 /* API Functions */
 
@@ -45,27 +44,33 @@ Game *CreateGame(size_t _numOfHumanPlayers, size_t _numOfComputerPlayers, char *
 
 GameResult PlayGame(Game *_game)
 {
-    size_t winnerIndex;
-    size_t roundNum;
+    size_t roundNum = 0;
+    size_t numWinners = 0;
+    size_t *winnerIndices = NULL;
     RoundResult playResult;
+
     if (_game == NULL)
     {
         return GAME_UNINITIALIZED_ERROR;
     }
 
-    winnerIndex = _game->m_numOfPlayers;
-    roundNum = 0;
-    while (winnerIndex == _game->m_numOfPlayers)
+    while (numWinners == 0)
     {
-        playResult = Play(_game->m_round, roundNum, &winnerIndex);
+        playResult = Play(_game->m_round, roundNum);
         if (playResult != ROUND_SUCCESS)
         {
             return StatusConverter(playResult);
         }
         roundNum = (roundNum + 1) % _game->m_numOfPlayers;
+
+        winnerIndices = IsThereAWinner(_game->m_round, &numWinners);
     }
-    printf("Winner is: %s !\n", PlayerGetName(_game->m_players[winnerIndex]));
-    printf("Scores:\n%s with score of %ld\n%s with score of %ld\n", PlayerGetName(_game->m_players[0]), _game->m_scores[0], PlayerGetName(_game->m_players[1]), _game->m_scores[1]);
+
+    PrintWinners(_game, numWinners, winnerIndices);
+
+    PrintScores(_game->m_round);
+
+    free(winnerIndices);
     return GAME_SUCCESS;
 }
 
@@ -124,7 +129,7 @@ static PlayerResult CreatePlayers(Game *_game, size_t _numOfComputerPlayers, siz
 static size_t FindPlayerIndex(Game *_game, char *_name)
 {
     size_t index;
-    char *playerName;
+    const char *playerName;
     for (index = 0; index < _game->m_numOfPlayers; index++)
     {
         playerName = PlayerGetName((_game->m_players[index]));
@@ -193,4 +198,20 @@ static GameResult StatusConverter(RoundResult _status)
         break;
     }
     return result;
+}
+
+static void PrintWinners(Game *_game, size_t _numWinners, size_t *_winnerIndices)
+{
+    PrintMessage("Winner(s):\n");
+    for (size_t index = 0; index < _numWinners; index++)
+    {
+        const char *playerName = PlayerGetName(_game->m_players[_winnerIndices[index]]);
+        if (playerName != NULL)
+        {
+            char message[50];
+            sprintf(message, "%s\n", playerName);
+            PrintMessage(message);
+        }
+    }
+    PrintMessage("\n");
 }

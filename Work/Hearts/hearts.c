@@ -4,9 +4,8 @@
 
 int main()
 {
-
     char *playerNames[] = {"Bob", "Alice", "Robert", "Emily"};
-    Game *game = CreateGame(0, 4, playerNames);
+    Game *game = CreateGame(1, 3, playerNames);
 
     if (game == NULL)
     {
@@ -18,7 +17,7 @@ int main()
 
     if (playRes != GAME_SUCCESS)
     {
-        printf("GameResult Code: %d\n",playRes);
+        printf("Failed on PlayGame.");
     }
 
     return 0;

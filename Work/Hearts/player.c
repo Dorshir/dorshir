@@ -5,6 +5,7 @@
 #include "ui.h"
 #include <stdlib.h> /* malloc, free, size_t */
 #include <string.h> /* strdup */
+#include <stdio.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -22,14 +23,16 @@ struct Player
 
 static PlayerResult InitCardsVector(Player *_player);
 static int CardComparator(void *_left, void *_right);
-static PlayerResult CheckInputThrowCard(Player *_player, Card **_pValue);
-static BSTreeItr ChooseCard(Player *_player);
+static PlayerResult CheckInputThrowCard(Player *_player, Card **_pValue, Card **_table, PrintCardFunc _printFunc, RulesFunction _rulesFunc, StrategyFunction _strategyFunc);
+static BSTreeItr ChooseCard(Player *_player, PrintCardFunc _printFunc);
 static BSTreeItr GetFirstCardExist(Player *_player);
-static void RevealCards(Player *_player);
-static void BuildCardMessage(Card *_card, char *_cardDetails);
-static BSTreeItr GetValidCard(Player *_player, Card **_table, RulesFunction _rulesFunc, void *_rulesContext);
+static void RevealCards(Player *_player, PrintCardFunc _printFunc);
+static void BuildCardIndexArray(Player *_player, BSTreeItr *cardItrArray);
+static size_t GetUserInput(size_t numOfCards);
+static BSTreeItr GetValidCard(Player *_player, Card **_table, PrintCardFunc _printFunc, RulesFunction _rulesFunc, void *_rulesContext);
 static size_t GetValidCardsMachine(Player *_player, Card **_table, Card **_validCards, RulesFunction _rulesFunc, void *_rulesContext);
 static Card **GetValidCardListMachine(Player *_player, Card **_table, RulesFunction _rulesFunc, void *_rulesContext);
+static size_t GetValidCardItersMachine(Player *_player, Card **_table, BSTreeItr *validCardIters, RulesFunction _rulesFunc, void *_rulesContext);
 
 /* API Functions */
 
@@ -70,13 +73,6 @@ void DestroyPlayer(Player **_player)
 {
     if (_player != NULL && *_player != NULL)
     {
-        BSTree *tree;
-        for (size_t i = 0; i < NUMBER_OF_SUITS; i++)
-        {
-            VectorGet((*_player)->m_cards, i, (void **)&tree);
-            BSTreeDestroy(&tree, free); /* MAYBE CARDS WILL BE DESTROYED SOMWHERE ELSE? */
-        }
-
         VectorDestroy(&((*_player)->m_cards), NULL);
         free((*_player)->m_name);
         free(*_player);
@@ -109,10 +105,10 @@ PlayerResult ReceiveCard(Player *_player, Card **_card)
     return PLAYER_SUCCESS;
 }
 
-PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, RulesFunction _rulesFunc, StrategyFunction _strategyFunc, void *_rulesContext, void *_strategyContext)
+PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, PrintCardFunc _printFunc, RulesFunction _rulesFunc, StrategyFunction _strategyFunc, void *_rulesContext, void *_strategyContext)
 {
     BSTreeItr cardToThrow;
-    PlayerResult inputCheck = CheckInputThrowCard(_player, _pValue);
+    PlayerResult inputCheck = CheckInputThrowCard(_player, _pValue, _table, _printFunc, _rulesFunc, _strategyFunc);
     if (inputCheck != PLAYER_SUCCESS)
     {
         return inputCheck;
@@ -120,20 +116,27 @@ PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, RulesFunc
 
     if (_player->m_type == HUMAN)
     {
-        cardToThrow = GetValidCard(_player, _table, _rulesFunc, _rulesContext);
+        cardToThrow = GetValidCard(_player, _table, _printFunc, _rulesFunc, _rulesContext);
     }
-    else /* MACHINE */
+    else /* MACHINE PLAYER */
     {
-        Card **validCards = GetValidCardListMachine(_player, _table, _rulesFunc, _rulesContext);
-        if (validCards == NULL)
+        BSTreeItr *validCardIters = malloc(_player->m_numOfCards * sizeof(BSTreeItr));
+        if (validCardIters == NULL)
         {
             return PLAYER_THROW_CARD_FAILED;
         }
 
-        /* Currently just throwing the first card you see... */
-        cardToThrow = GetFirstCardExist(_player);
+        size_t validCardCount = GetValidCardItersMachine(_player, _table, validCardIters, _rulesFunc, _rulesContext);
 
-        free(validCards);
+        if (validCardCount == 0)
+        {
+            free(validCardIters);
+            return PLAYER_THROW_CARD_FAILED;
+        }
+
+        cardToThrow = validCardIters[0]; /* For now, pick the first valid card */
+
+        free(validCardIters);
     }
 
     if (cardToThrow == NULL)
@@ -142,6 +145,7 @@ PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, RulesFunc
     }
 
     *_pValue = BSTreeItrRemove(cardToThrow);
+
     --_player->m_numOfCards;
     return PLAYER_SUCCESS;
 }
@@ -234,10 +238,10 @@ static BSTreeItr GetFirstCardExist(Player *_player)
     return cardToThrow;
 }
 
-static PlayerResult CheckInputThrowCard(Player *_player, Card **_pValue)
+static PlayerResult CheckInputThrowCard(Player *_player, Card **_pValue, Card **_table, PrintCardFunc _printFunc, RulesFunction _rulesFunc, StrategyFunction _strategyFunc)
 {
     PlayerResult result = PLAYER_SUCCESS;
-    if (_player == NULL || _pValue == NULL)
+    if (_player == NULL || _pValue == NULL || _printFunc == NULL)
     {
         result = PLAYER_UNINITIALIZED;
     }
@@ -248,100 +252,164 @@ static PlayerResult CheckInputThrowCard(Player *_player, Card **_pValue)
     return result;
 }
 
-static void RevealCards(Player *_player)
+static void RevealCards(Player *_player, PrintCardFunc _printFunc)
 {
+    size_t displayIndex = 1;
     BSTree *currBSTreeSuit;
 
-    PrintMessage("Revealing cards of player: ");
-    PrintMessage(_player->m_name);
-    PrintMessage("\n");
+    PrintMessage("| ");
 
-    for (size_t suit = HEARTS; suit < NUMBER_OF_SUITS; suit++)
+    for (size_t suit = 0; suit < NUMBER_OF_SUITS; suit++)
     {
         VectorGet(_player->m_cards, suit, (void **)&currBSTreeSuit);
         BSTreeItr begin = BSTreeItrBegin(currBSTreeSuit);
         BSTreeItr end = BSTreeItrEnd(currBSTreeSuit);
 
-        while (begin != end)
+        while (!BSTreeItrEquals(begin, end))
         {
             Card *currCard = BSTreeItrGet(begin);
-            char cardDetails[50] = "";
 
-            BuildCardMessage(currCard, cardDetails);
-            PrintMessage(cardDetails);
+            char message[30] = "";
+            sprintf(message, "%zu: ", displayIndex++);
+            PrintMessage(message);
+            _printFunc(currCard);
+            PrintMessage(" | ");
 
+            begin = BSTreeItrNext(begin);
+        }
+    }
+    PrintMessage("\n");
+}
+
+static void BuildCardIndexArray(Player *_player, BSTreeItr *cardItrArray)
+{
+    size_t index = 0;
+    BSTree *currBSTreeSuit;
+
+    for (size_t suit = 0; suit < NUMBER_OF_SUITS; suit++)
+    {
+        VectorGet(_player->m_cards, suit, (void **)&currBSTreeSuit);
+        BSTreeItr begin = BSTreeItrBegin(currBSTreeSuit);
+        BSTreeItr end = BSTreeItrEnd(currBSTreeSuit);
+
+        while (!BSTreeItrEquals(begin, end))
+        {
+            cardItrArray[index++] = begin;
             begin = BSTreeItrNext(begin);
         }
     }
 }
 
-static BSTreeItr ChooseCard(Player *_player)
+static size_t GetUserInput(size_t numOfCards)
 {
-    BSTreeItr cardToThrow = NULL;
-    RevealCards(_player);
+    size_t chosenIndex = 0;
+    int validInput = 0;
+    while (!validInput)
+    {
+        PrintMessage("Please choose a card to throw (by index): ");
+        char input[100];
+        if (fgets(input, sizeof(input), stdin) == NULL)
+        {
+            PrintMessage("Error reading input. Please try again.\n");
+            continue;
+        }
+
+        input[strcspn(input, "\n")] = '\0';
+        char *endptr;
+        long inputIndex = strtol(input, &endptr, 10);
+        if (endptr == input || *endptr != '\0')
+        {
+            PrintMessage("Invalid input. Please enter a number.\n");
+            continue;
+        }
+        if (inputIndex < 1 || inputIndex > numOfCards)
+        {
+            PrintMessage("Invalid index.\n");
+            continue;
+        }
+        chosenIndex = (size_t)(inputIndex - 1);
+        validInput = 1;
+    }
+
+    PrintMessage("\n");
+
+    return chosenIndex;
+}
+
+static BSTreeItr ChooseCard(Player *_player, PrintCardFunc _printFunc)
+{
+    if (_player == NULL || _printFunc == NULL)
+    {
+        return NULL;
+    }
+
+    size_t numOfCards = _player->m_numOfCards;
+    if (numOfCards == 0)
+    {
+        return NULL;
+    }
+
+    BSTreeItr *cardItrArray = malloc(numOfCards * sizeof(BSTreeItr));
+    if (cardItrArray == NULL)
+    {
+        return NULL;
+    }
+
+    RevealCards(_player, _printFunc);
+
+    BuildCardIndexArray(_player, cardItrArray);
+
+    size_t chosenIndex = GetUserInput(numOfCards);
+
+    BSTreeItr cardToThrow = cardItrArray[chosenIndex];
+
+    free(cardItrArray);
 
     return cardToThrow;
 }
 
-static BSTreeItr GetValidCard(Player *_player, Card **_table, RulesFunction _rulesFunc, void *_rulesContext)
+static BSTreeItr GetValidCard(Player *_player, Card **_table, PrintCardFunc _printFunc, RulesFunction _rulesFunc, void *_rulesContext)
 {
-    BSTreeItr cardToThrow;
+    BSTreeItr cardItr;
     if (_rulesFunc == NULL || _rulesContext == NULL)
     {
-        return ChooseCard(_player);
+        return ChooseCard(_player, _printFunc);
     }
 
     while (TRUE)
     {
-        cardToThrow = ChooseCard(_player);
-        if (_rulesFunc(cardToThrow, _table, _rulesContext))
+        cardItr = ChooseCard(_player, _printFunc);
+
+        Card *selectedCard = BSTreeItrGet(cardItr);
+        if (_rulesFunc(selectedCard, _table, _rulesContext))
         {
             break;
         }
     }
-    return cardToThrow;
+    return cardItr;
 }
 
-static size_t GetValidCardsMachine(Player *_player, Card **_table, Card **_validCards, RulesFunction _rulesFunc, void *_rulesContext)
+static size_t GetValidCardItersMachine(Player *_player, Card **_table, BSTreeItr *validCardIters, RulesFunction _rulesFunc, void *_rulesContext)
 {
     BSTree *currBSTreeSuit;
     size_t cardIndex = 0;
-    for (size_t suit = HEARTS; suit < NUMBER_OF_SUITS; suit++)
+    for (size_t suit = 0; suit < NUMBER_OF_SUITS; suit++)
     {
         VectorGet(_player->m_cards, suit, (void **)&currBSTreeSuit);
         BSTreeItr begin = BSTreeItrBegin(currBSTreeSuit);
         BSTreeItr end = BSTreeItrEnd(currBSTreeSuit);
 
-        while (begin != end)
+        while (!BSTreeItrEquals(begin, end))
         {
             Card *currCard = BSTreeItrGet(begin);
             if (_rulesFunc(currCard, _table, _rulesContext))
             {
-                _validCards[cardIndex++] = currCard;
+                validCardIters[cardIndex++] = begin;
             }
             begin = BSTreeItrNext(begin);
         }
     }
     return cardIndex;
-}
-
-static Card **GetValidCardListMachine(Player *_player, Card **_table, RulesFunction _rulesFunc, void *_rulesContext)
-{
-    Card **validCards;
-    if (_player->m_numOfCards == 0)
-    {
-        return NULL;
-    }
-
-    validCards = malloc(sizeof(Card *) * _player->m_numOfCards);
-    if (validCards == NULL)
-    {
-        return NULL;
-    }
-
-    size_t validCardCount = GetValidCardsMachine(_player, _table, validCards, _rulesFunc, _rulesContext);
-
-    return validCards;
 }
 
 /* Getter Functions */
@@ -371,29 +439,4 @@ size_t PlayerGetNumOfCards(const Player *_player)
         return 0;
     }
     return _player->m_numOfCards;
-}
-
-static void BuildCardMessage(Card *_card, char *_cardDetails)
-{
-    const char *suitNames[] = {"Hearts", "Diamonds", "Clubs", "Spades"};
-    const char *rankNames[] = {
-        [TWO] = "Two",
-        [THREE] = "Three",
-        [FOUR] = "Four",
-        [FIVE] = "Five",
-        [SIX] = "Six",
-        [SEVEN] = "Seven",
-        [EIGHT] = "Eight",
-        [NINE] = "Nine",
-        [TEN] = "Ten",
-        [JACK] = "Jack",
-        [QUEEN] = "Queen",
-        [KING] = "King",
-        [ACE] = "Ace"};
-
-    strcat(_cardDetails, " [");
-    strcat(_cardDetails, suitNames[_card->m_suit]);
-    strcat(_cardDetails, " : ");
-    strcat(_cardDetails, rankNames[_card->m_rank]);
-    strcat(_cardDetails, "]\n");
 }

@@ -1,7 +1,8 @@
 #include "deck.h"
 #include "card.h"
 #include "genvec.h"
-#include <stdlib.h> /* malloc, free, size_t */
+#include <stdlib.h> /* malloc, free, size_t, srand */
+#include <time.h>   /* time */
 
 struct Deck
 {
@@ -11,6 +12,7 @@ struct Deck
 
 static void InitCards(Deck *_deck, size_t _numOfDecks);
 static Deck *AllocateMemoryDeck(size_t _numOfDecks, size_t _numOfCards);
+static void SwapCards(Vector *_cards, size_t _first, size_t _second);
 
 /* API Functions */
 
@@ -33,7 +35,6 @@ Deck *CreateDeck(size_t _numOfDecks)
     InitCards(newDeck, _numOfDecks);
 
     newDeck->m_numOfCards = numOfCards;
-
 
     return newDeck;
 }
@@ -64,6 +65,30 @@ void DestroyDeck(Deck **_deck)
         free(*_deck);
         *_deck = NULL;
     }
+}
+
+DeckResult ShuffleDeck(Deck *_deck)
+{
+    if (_deck == NULL || _deck->m_cards == NULL)
+    {
+        return DECK_UNINITIALIZED_ERROR;
+    }
+
+    size_t n = _deck->m_numOfCards;
+    if (n <= 1)
+    {
+        return DECK_SUCCESS;
+    }
+
+    srand((unsigned int)time(NULL));
+
+    for (size_t i = n - 1; i > 0; i--)
+    {
+        size_t j = rand() % (i + 1);
+        SwapCards(_deck->m_cards, i, j);
+    }
+
+    return DECK_SUCCESS;
 }
 
 /* Static Functions */
@@ -114,4 +139,16 @@ static Deck *AllocateMemoryDeck(size_t _numOfDecks, size_t _numOfCards)
     }
 
     return newDeck;
+}
+
+static void SwapCards(Vector *_cards, size_t _i, size_t _j)
+{
+    void *cardI;
+    void *cardJ;
+
+    VectorGet(_cards, _i, &cardI);
+    VectorGet(_cards, _j, &cardJ);
+
+    VectorSet(_cards, _i, cardJ);
+    VectorSet(_cards, _j, cardI);
 }

@@ -21,7 +21,11 @@ typedef enum Round_Result
 
 Round *CreateRound(Player **_players, size_t _numOfPlayers, size_t *_scores);
 
-RoundResult Play(Round *_round, size_t _roundNum, size_t *_winnerIndex);
+RoundResult Play(Round *_round, size_t _roundNum);
+
+size_t *IsThereAWinner(Round *_round, size_t *_numWinners);
+
+void PrintScores(Round *_round);
 
 void DestroyRound(Round **_round);
 

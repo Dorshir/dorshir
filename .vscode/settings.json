@@ -15,6 +15,8 @@
         "algorithm": "c",
         "stdlib.h": "c",
         "functional": "c",
-        "dynamicarray.h": "c"
+        "dynamicarray.h": "c",
+        "system_error": "c",
+        "sstream": "c"
     }
 }

@@ -2,8 +2,11 @@
 #include "player.h"
 #include "card.h"
 #include "deck.h"
+#include "ui.h"
 #include <stdlib.h> /* malloc, free, size_t */
 #include <stdint.h> /* SIZE_MAX */
+#include <string.h> /* strcat */
+#include <stdio.h>  /* sprintf */
 
 #define HEARTS_NUM_OF_PLAYERS 4
 #define NUM_OF_CARDS_EACH_PLAYER 13
@@ -18,8 +21,10 @@
 #define IS_QUEEN_OF_SPADES(card) (card->m_suit == SPADES && card->m_rank == QUEEN)
 #define IS_EMPTY_TABLE(rules) (rules->m_numOfCardsOnTable == 0)
 #define ARE_SAME_SUIT(firstCard, secondCard) (firstCard->m_suit == secondCard->m_suit)
-#define GET_RELATIVE_INDEX(playerNum, rulesContext, round) ((playerNum + rulesContext->m_openingPlayerNum) % round->m_numOfPlayers)
-
+#define GET_RELATIVE_INDEX(playerNum, rulesContext, round) ((rulesContext->m_openingPlayerNum + playerNum) % round->m_numOfPlayers)
+#define HEARTS_BROKEN(rules) (rules->m_heartsHasBeenBroken == 1)
+#define NEEDS_TO_BREAK(tableCards, playerNum) (tableCards[playerNum] != NULL && tableCards[playerNum]->m_suit == HEARTS)
+#define IS_TWO_OF_CLUBS(card) (card->m_suit == CLUBS && card->m_rank == TWO)
 
 typedef enum Bool
 {
@@ -48,6 +53,7 @@ typedef struct RulesContext
     size_t m_trickNum;
     size_t m_openingPlayerNum;
     size_t m_numOfCardsOnTable;
+    Bool m_heartsHasBeenBroken;
     Bool m_hasTrickSuitCards;
 } RulesContext;
 
@@ -58,16 +64,18 @@ typedef struct StrategyContext
 
 static RoundResult DealCards(Round *_round, Deck *_deck);
 static void GetRelativeNextPos(RoundNum _roundNum, int *_relativeNext);
-static void PassCardsNextPlayer(Player *_first, Card **_tempCards, Player *_second, Card **_tableCards, StrategyContext *_strategyContext);
 static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCards, StrategyContext *_strategyContext);
-static void UpdateScore(Round *_round, Card **_tableCards, size_t _openningPlayerNum);
+static size_t UpdateScore(Round *_round, Card **_tableCards, RulesContext *_rulesContext);
 static RoundResult PlayTrick(Round *_round, Card **_tableCards, StrategyContext *_strategyContext, RulesContext *_rulesContext);
 static RoundResult StartRound(Round *_round, RoundNum _roundNum);
-static size_t IsThereAWinner(Round *_round);
+size_t *IsThereAWinner(Round *_round, size_t *_numWinners);
 static void DestroyAlreadyGivenCards(Round *_round, size_t _lastPlayerIndex);
 static void DestroyTableCards(Card **_tableCards, size_t _length);
 static size_t WhoHasTwoClubs(Round *_round);
 int IsValidCard(Card *_card, Card **_table, void *_context);
+static void PrintCard(Card *_card);
+static void PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext);
+static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openingPlayerNum, size_t *_score, RulesContext *_rulesContext);
 
 Card *GetOptCard(Card **_cards, Card **_table, void *_context)
 {
@@ -111,10 +119,10 @@ void DestroyRound(Round **_round)
     }
 }
 
-RoundResult Play(Round *_round, size_t _roundNum, size_t *_winnerIndex)
+RoundResult Play(Round *_round, size_t _roundNum)
 {
-    RoundResult status;
-    if (_round == NULL || _winnerIndex == NULL)
+    RoundResult status = ROUND_SUCCESS;
+    if (_round == NULL)
     {
         return ROUND_UNINITIALIZED_ERROR;
     }
@@ -125,21 +133,25 @@ RoundResult Play(Round *_round, size_t _roundNum, size_t *_winnerIndex)
         return ROUND_ALLOCATION_ERROR;
     }
 
+    if (ShuffleDeck(deck) != DECK_SUCCESS)
+    {
+        DestroyDeck(&deck);
+        return status;
+    }
+
     status = DealCards(_round, deck);
     if (status != ROUND_SUCCESS)
     {
         DestroyDeck(&deck);
-        return ROUND_DECKS_SET_FAILURE;
+        return status;
     }
 
     status = StartRound(_round, _roundNum);
     if (status != ROUND_SUCCESS)
     {
         DestroyDeck(&deck);
-        return ROUND_DECKS_SET_FAILURE;
+        return status;
     }
-
-    *_winnerIndex = IsThereAWinner(_round);
 
     DestroyDeck(&deck);
     return ROUND_SUCCESS;
@@ -198,16 +210,23 @@ static void GetRelativeNextPos(RoundNum _roundNum, int *_relativeNext)
     }
 }
 
-static void PassCardsNextPlayer(Player *_first, Card **_tempCards, Player *_second, Card **_tableCards, StrategyContext *_strategyContext)
+static RoundResult InitCardsToPass(Card ***_cardsToPass, size_t _numOfPlayers)
 {
-    for (size_t cardNum = 0; cardNum < NUM_OF_CARDS_PASS; cardNum++)
+    for (size_t playerNum = 0; playerNum < _numOfPlayers; playerNum++)
     {
-        ThrowCard(_first, &_tempCards[cardNum], _tableCards, IsValidCard, GetOptCardPass, NULL, _strategyContext);
+        _cardsToPass[playerNum] = malloc(NUM_OF_CARDS_PASS * sizeof(Card *));
+        if (_cardsToPass[playerNum] == NULL)
+        {
+            /* free previouse  */
+            for (size_t i = 0; i < playerNum; i++)
+            {
+                free(_cardsToPass[i]);
+            }
+            free(_cardsToPass);
+            return ROUND_ALLOCATION_ERROR;
+        }
     }
-    for (size_t cardNum = 0; cardNum < NUM_OF_CARDS_PASS; cardNum++)
-    {
-        ReceiveCard(_second, &_tempCards[cardNum]);
-    }
+    return ROUND_SUCCESS;
 }
 
 static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCards, StrategyContext *_strategyContext)
@@ -218,8 +237,15 @@ static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCar
         return ROUND_SUCCESS;
     }
 
-    Card **tempCards = malloc(sizeof(Card *) * NUM_OF_CARDS_PASS);
-    if (tempCards == NULL)
+    PrintMessage("Choose 3 cards to pass another player, before the tricks start on\n");
+
+    Card ***cardsToPass = malloc(_round->m_numOfPlayers * sizeof(Card **));
+    if (cardsToPass == NULL)
+    {
+        return ROUND_ALLOCATION_ERROR;
+    }
+
+    if (InitCardsToPass(cardsToPass, _round->m_numOfPlayers) != ROUND_SUCCESS)
     {
         return ROUND_ALLOCATION_ERROR;
     }
@@ -228,27 +254,63 @@ static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCar
 
     for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
     {
-        size_t nextPlayerIndex = (_round->m_numOfPlayers + playerNum + relativeNext) % _round->m_numOfPlayers;
-        PassCardsNextPlayer(_round->m_players[playerNum], tempCards, _round->m_players[nextPlayerIndex], _tableCards, _strategyContext);
+        for (size_t cardNum = 0; cardNum < NUM_OF_CARDS_PASS; cardNum++)
+        {
+            if (ThrowCard(_round->m_players[playerNum], &cardsToPass[playerNum][cardNum], _tableCards, PrintCard, IsValidCard, GetOptCardPass, NULL, _strategyContext) != PLAYER_SUCCESS)
+            {
+                for (size_t i = 0; i <= playerNum; i++)
+                {
+                    free(cardsToPass[i]);
+                }
+                free(cardsToPass);
+                return ROUND_PASS_CARDS_FAILED;
+            }
+        }
     }
 
-    free(tempCards);
+    PassToAnotherPlayer(_round, cardsToPass, relativeNext);
+
+    for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
+    {
+        free(cardsToPass[playerNum]);
+    }
+    free(cardsToPass);
+
     return ROUND_SUCCESS;
 }
 
-static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openningPlayerNum, size_t *_score)
+static void PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext)
+{
+    for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
+    {
+        size_t nextPlayerIndex = (_round->m_numOfPlayers + playerNum + _relativeNext) % _round->m_numOfPlayers;
+        for (size_t cardNum = 0; cardNum < NUM_OF_CARDS_PASS; cardNum++)
+        {
+            ReceiveCard(_round->m_players[nextPlayerIndex], &_cardsToPass[playerNum][cardNum]);
+        }
+    }
+}
+
+static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openingPlayerNum, size_t *_score, RulesContext *_rulesContext)
 {
     Card *highestCard = _tableCards[0];
-    size_t loserIndex = _openningPlayerNum;
+    size_t highestPlayerNum = 0;
+
     for (size_t i = 1; i < _round->m_numOfPlayers; i++)
     {
-        size_t relativeIndex = (_openningPlayerNum + i) % _round->m_numOfPlayers;
-        Card *currCard = _tableCards[relativeIndex];
+        Card *currCard = _tableCards[i];
         if (ARE_SAME_SUIT(highestCard, currCard) && currCard->m_rank > highestCard->m_rank)
         {
-            loserIndex = relativeIndex;;
             highestCard = currCard;
+            highestPlayerNum = i;
         }
+    }
+
+    size_t loserIndex = GET_RELATIVE_INDEX(highestPlayerNum, _rulesContext, _round);
+
+    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
+    {
+        Card *currCard = _tableCards[i];
         if (IS_HEART_SUIT(currCard))
         {
             *_score += 1;
@@ -258,14 +320,16 @@ static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openningPlayer
             *_score += 13;
         }
     }
+
     return loserIndex;
 }
 
-static void UpdateScore(Round *_round, Card **_tableCards, size_t _openningPlayerNum)
+static size_t UpdateScore(Round *_round, Card **_tableCards, RulesContext *_rulesContext)
 {
     size_t score = 0;
-    size_t loserPlayerNum = GetLoser(_round, _tableCards, _openningPlayerNum, &score);
+    size_t loserPlayerNum = GetLoser(_round, _tableCards, _rulesContext->m_openingPlayerNum, &score, _rulesContext);
     _round->m_scores[loserPlayerNum] += score;
+    return loserPlayerNum;
 }
 
 static void DestroyTableCards(Card **_tableCards, size_t _length)
@@ -280,19 +344,111 @@ static void DestroyTableCards(Card **_tableCards, size_t _length)
     }
 }
 
+static void GetSymb(char *_symb, Suit _cardSuit)
+{
+    _symb[0] = '\0';
+    switch (_cardSuit)
+    {
+    case HEARTS:
+        strcat(_symb, HEART_SYMB);
+        break;
+    case SPADES:
+        strcat(_symb, SPADE_SYMB);
+        break;
+    case DIAMONDS:
+        strcat(_symb, DIAMOND_SYMB);
+        break;
+    case CLUBS:
+        strcat(_symb, CLUB_SYMB);
+        break;
+    default:
+        strcat(_symb, "?");
+        break;
+    }
+}
+
+static void PrintCard(Card *_card)
+{
+    if (_card == NULL)
+    {
+        return;
+    }
+    char symb[10] = "";
+    char rank[10] = "";
+    char message[30] = "";
+
+    GetSymb(symb, _card->m_suit);
+
+    const char *rankStr = NULL;
+    switch (_card->m_rank + 2)
+    {
+    case 14:
+        rankStr = "A";
+        break;
+    case 11:
+        rankStr = "J";
+        break;
+    case 12:
+        rankStr = "Q";
+        break;
+    case 13:
+        rankStr = "K";
+        break;
+    default:
+        sprintf(rank, "%d", _card->m_rank + 2);
+        rankStr = rank;
+        break;
+    }
+
+    sprintf(message, "%s%s", symb, rankStr);
+
+    PrintMessage((_card->m_suit == HEARTS || _card->m_suit == DIAMONDS) ? RED : BLACK);
+    PrintMessage(message);
+    PrintMessage(NORMAL);
+}
+
+static void PrintTable(Card **_tableCards, size_t _numCardsOnTable)
+{
+    if (_numCardsOnTable == 0)
+    {
+        return;
+    }
+
+    PrintMessage("Table: ");
+    for (size_t index = 0; index < _numCardsOnTable; index++)
+    {
+        if (_tableCards[index] != NULL)
+        {
+            PrintCard(_tableCards[index]);
+            PrintMessage(" ");
+        }
+    }
+    PrintMessage("\n");
+}
+
 static RoundResult PlayTrick(Round *_round, Card **_tableCards, StrategyContext *_strategyContext, RulesContext *_rulesContext)
 {
     for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
     {
         size_t relativeIndex = GET_RELATIVE_INDEX(playerNum, _rulesContext, _round);
-        if (ThrowCard(_round->m_players[relativeIndex], &_tableCards[relativeIndex], _tableCards, IsValidCard, GetOptCard, _rulesContext, _strategyContext) != PLAYER_SUCCESS)
+
+        if (ThrowCard(_round->m_players[relativeIndex], &_tableCards[playerNum], _tableCards,
+                      PrintCard, IsValidCard, GetOptCard, _rulesContext, _strategyContext) != PLAYER_SUCCESS)
         {
             return ROUND_PLAY_TRICK_FAILED;
         }
+
+        if (NEEDS_TO_BREAK(_tableCards, playerNum))
+        {
+            _rulesContext->m_heartsHasBeenBroken = TRUE;
+        }
+
         ++_rulesContext->m_numOfCardsOnTable;
+
+        PrintTable(_tableCards, _rulesContext->m_numOfCardsOnTable);
     }
 
-    UpdateScore(_round, _tableCards, _rulesContext->m_openingPlayerNum);
+    _rulesContext->m_openingPlayerNum = UpdateScore(_round, _tableCards, _rulesContext);
 
     DestroyTableCards(_tableCards, _round->m_numOfPlayers);
 
@@ -315,10 +471,12 @@ static size_t WhoHasTwoClubs(Round *_round)
 
 static RoundResult StartRound(Round *_round, RoundNum _roundNum)
 {
+    static size_t roundCounter = 1;
+
     RulesContext rulesContext = {0};
     StrategyContext strategyContext = {0};
 
-    Card **tableCards = malloc(_round->m_numOfPlayers * sizeof(Card *));
+    Card **tableCards = calloc(_round->m_numOfPlayers, sizeof(Card *));
     if (tableCards == NULL)
     {
         return ROUND_ALLOCATION_ERROR;
@@ -330,43 +488,82 @@ static RoundResult StartRound(Round *_round, RoundNum _roundNum)
         return ROUND_PASS_CARDS_FAILED;
     }
     rulesContext.m_openingPlayerNum = WhoHasTwoClubs(_round);
-    rulesContext.m_trickSuit = CLUBS;
 
     for (size_t trickNum = 0; trickNum < NUM_OF_TRICKS; trickNum++)
     {
+        rulesContext.m_numOfCardsOnTable = 0;
+        rulesContext.m_trickNum = trickNum;
+
+        char message[50];
+        sprintf(message, "Round [%zu] | Trick [%zu/%d]\n", roundCounter, trickNum + 1, NUM_OF_TRICKS);
+        PrintMessage(message);
+
         if (PlayTrick(_round, tableCards, &strategyContext, &rulesContext) != ROUND_SUCCESS)
         {
             free(tableCards);
             return ROUND_PLAY_TRICK_FAILED;
         }
-        ++(rulesContext.m_trickNum);
+        PrintScores(_round);
     }
 
+    ++roundCounter;
+
     free(tableCards);
+
     return ROUND_SUCCESS;
 }
 
-static size_t IsThereAWinner(Round *_round)
+size_t *IsThereAWinner(Round *_round, size_t *_numWinners)
 {
-
-    /* handle if more than 1 winner .... */
-    int isWinner = FALSE;
-    size_t winnerIndex = 0;
-    size_t minScore = SIZE_MAX;
-    for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
+    if (_round == NULL || _numWinners == NULL)
     {
-        if (_round->m_scores[playerNum] < minScore)
+        return NULL;
+    }
+
+    *_numWinners = 0;
+
+    int isGameOver = FALSE;
+    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
+    {
+        if (_round->m_scores[i] >= END_GAME_SCORE)
         {
-            minScore = _round->m_scores[playerNum];
-            winnerIndex = playerNum;
-        }
-        if (_round->m_scores[playerNum] >= END_GAME_SCORE)
-        {
-            isWinner = TRUE;
+            isGameOver = TRUE;
+            break;
         }
     }
 
-    return (isWinner == TRUE) ? winnerIndex : _round->m_numOfPlayers;
+    if (!isGameOver)
+    {
+        return NULL;
+    }
+
+    size_t minScore = SIZE_MAX;
+    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
+    {
+        if (_round->m_scores[i] < minScore)
+        {
+            minScore = _round->m_scores[i];
+        }
+    }
+
+    size_t *winnerIndices = malloc(_round->m_numOfPlayers * sizeof(size_t));
+    if (winnerIndices == NULL)
+    {
+        return NULL;
+    }
+
+    size_t winnerCount = 0;
+    for (size_t i = 0; i < _round->m_numOfPlayers; i++)
+    {
+        if (_round->m_scores[i] == minScore)
+        {
+
+            winnerIndices[winnerCount++] = i;
+        }
+    }
+    printf("%ld\n", winnerIndices[winnerCount]);
+    *_numWinners = winnerCount;
+    return winnerIndices;
 }
 
 /* Rules and Strategy */
@@ -379,14 +576,24 @@ int IsValidCard(Card *_card, Card **_table, void *_context)
     }
     RulesContext *rules = (RulesContext *)(_context);
 
-    if (IS_FIRST_TRICK(rules->m_trickNum) && (IS_HEART_SUIT(_card) || IS_QUEEN_OF_SPADES(_card)))
+    if (IS_FIRST_TRICK(rules->m_trickNum))
     {
-        return FALSE;
+        if (IS_EMPTY_TABLE(rules) && !IS_TWO_OF_CLUBS(_card))
+        {
+            // PrintMessage("First trick must start with Two of Clubs.\n");
+            return FALSE;
+        }
+        else if (IS_HEART_SUIT(_card) || IS_QUEEN_OF_SPADES(_card))
+        {
+            // PrintMessage("Cannot play Hearts or Queen of Spades on the first trick.\n");
+            return FALSE;
+        }
     }
     else if (IS_EMPTY_TABLE(rules))
     {
-        if (IS_HEART_SUIT(_card))
+        if (IS_HEART_SUIT(_card) && !HEARTS_BROKEN(rules))
         {
+            // PrintMessage("Cannot lead with a Heart until Hearts have been broken.\n");
             return FALSE;
         }
         rules->m_trickSuit = _card->m_suit;
@@ -394,11 +601,29 @@ int IsValidCard(Card *_card, Card **_table, void *_context)
     else
     {
         Card *openingCard = _table[rules->m_openingPlayerNum];
-        if ((!ARE_SAME_SUIT(_card, openingCard)) && rules->m_hasTrickSuitCards)
+        if (openingCard != NULL && (!ARE_SAME_SUIT(_card, openingCard)) && rules->m_hasTrickSuitCards)
         {
+            // PrintMessage("Must follow suit if you have a card of the same suit.\n");
             return FALSE;
         }
     }
 
     return TRUE;
+}
+
+void PrintScores(Round *_round)
+{
+    if (_round == NULL)
+    {
+        return;
+    }
+
+    PrintMessage("Scores:\n");
+    for (size_t index = 0; index < _round->m_numOfPlayers; index++)
+    {
+        char message[50];
+        sprintf(message, "%s with score of %zu\n", PlayerGetName(_round->m_players[index]), _round->m_scores[index]);
+        PrintMessage(message);
+    }
+    PrintMessage("\n");
 }
