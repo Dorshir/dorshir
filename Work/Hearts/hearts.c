@@ -9,9 +9,11 @@
 int main()
 {
     char name[MAX_LENGTH_NAME] = {0};
-    PrintMessage("Please enter a name: ");
-    fgets(name, MAX_LENGTH_NAME, stdin);
     char *playerNames[NUM_OF_PLAYERS];
+
+
+    PrintMessage("Please enter a name: ");
+    GetInput(name, MAX_LENGTH_NAME);    
 
     name[strlen(name) - 1] = '\0';
     playerNames[0] = name;
@@ -23,7 +25,6 @@ int main()
     PrintMessage(name);
     PrintMessage("!\n");
 
-    PrintMessage("\n");
     Game *game = CreateGame(1, 3, playerNames);
     if (game == NULL)
     {

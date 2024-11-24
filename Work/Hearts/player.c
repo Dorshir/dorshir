@@ -4,7 +4,7 @@
 #include "card.h"
 #include "ui.h"
 #include <stdlib.h> /* malloc, free, size_t */
-#include <string.h> /* strdup */
+#include <string.h> /* strdup, strlen */
 #include <stdio.h>  /* sprintf*/
 
 #define TRUE 1
@@ -12,10 +12,8 @@
 #define NOT_FOUND -1
 #define HAS_CARDS_FOR_THIS_SUIT(begin, end) (!BSTreeItrEquals(begin, end))
 #define ARE_CARDS_EQUAL(first, second) (first->m_suit == second->m_suit && first->m_rank == second->m_rank)
-
 #define MAX_MESSAGE_SIZE 30
 #define BASE 10
-
 
 struct Player
 {
@@ -128,6 +126,7 @@ PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, PrintCard
             return PLAYER_THROW_CARD_FAILED;
         }
 
+        /* Should also be in BSTs .. */
         size_t validCardCount = GetValidCardsMachine(_player, _table, validCards, _rulesFunc, _rulesContext);
 
         if (validCardCount == 0)
@@ -136,7 +135,10 @@ PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, PrintCard
             return PLAYER_THROW_CARD_FAILED;
         }
 
-        Card *selectedCard = _strategyFunc(validCards, _table, _rulesContext);
+        /* first card for now .. */
+        Card * selectedCard = validCards[0];
+        // Card *selectedCard = _strategyFunc(validCards, _table, _rulesContext);
+
 
         cardToThrow = FindCardIterator(_player, selectedCard);
 
@@ -306,13 +308,10 @@ static size_t GetUserInput(size_t _numOfCards)
     {
         PrintMessage("Please choose a card to throw (by index): ");
         char input[MAX_MESSAGE_SIZE];
-        if (fgets(input, sizeof(input), stdin) == NULL)
-        {
-            PrintMessage("Error reading input. Please try again.\n");
-            continue;
-        }
 
-        input[strcspn(input, "\n")] = '\0';
+        GetInput(input,MAX_MESSAGE_SIZE);
+
+        input[strlen(input) - 1] = '\0';
         char *endptr;
         long inputIndex = strtol(input, &endptr, BASE);
         if (endptr == input || *endptr != '\0')
@@ -409,7 +408,6 @@ static size_t GetValidCardsMachine(Player *_player, Card **_table, Card **validC
             begin = BSTreeItrNext(begin);
         }
     }
-
     return cardIndex;
 }
 
