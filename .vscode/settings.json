@@ -19,6 +19,7 @@
         "system_error": "c",
         "sstream": "c",
         "type_traits": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "bitwise.h": "c"
     }
 }
