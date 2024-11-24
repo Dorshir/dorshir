@@ -69,10 +69,22 @@ Player *CreatePlayer(PlayerType _type, char *_name)
     return newPlayer;
 }
 
+static void DestroyCards(Player *_player)
+{
+    BSTree *currBSTreeSuit;
+
+    for (size_t suit = 0; suit < NUMBER_OF_SUITS; suit++)
+    {
+        VectorGet(_player->m_cards, suit, (void **)&currBSTreeSuit);
+        BSTreeDestroy(&currBSTreeSuit, free);
+    }
+}
+
 void DestroyPlayer(Player **_player)
 {
     if (_player != NULL && *_player != NULL)
     {
+        DestroyCards(*_player);
         VectorDestroy(&((*_player)->m_cards), NULL);
         free((*_player)->m_name);
         free(*_player);
@@ -136,9 +148,8 @@ PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, PrintCard
         }
 
         /* first card for now .. */
-        Card * selectedCard = validCards[0];
+        Card *selectedCard = validCards[0];
         // Card *selectedCard = _strategyFunc(validCards, _table, _rulesContext);
-
 
         cardToThrow = FindCardIterator(_player, selectedCard);
 
@@ -309,7 +320,7 @@ static size_t GetUserInput(size_t _numOfCards)
         PrintMessage("Please choose a card to throw (by index): ");
         char input[MAX_MESSAGE_SIZE];
 
-        GetInput(input,MAX_MESSAGE_SIZE);
+        GetInput(input, MAX_MESSAGE_SIZE);
 
         input[strlen(input) - 1] = '\0';
         char *endptr;
@@ -417,7 +428,7 @@ static BSTreeItr FindCardIterator(Player *_player, Card *selectedCard)
     BSTreeItr itr = NULL;
 
     VectorGet(_player->m_cards, selectedCard->m_suit, (void **)&currBSTreeSuit);
-    
+
     itr = BSTreeItrBegin(currBSTreeSuit);
     BSTreeItr end = BSTreeItrEnd(currBSTreeSuit);
 

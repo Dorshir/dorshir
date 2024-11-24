@@ -12,7 +12,7 @@
 #define NUM_OF_CARDS_EACH_PLAYER 13
 #define NUM_OF_CARDS_PASS 3
 #define NUM_OF_TRICKS 13
-#define END_GAME_SCORE 100
+#define END_GAME_SCORE 10
 #define MAX_SYMBOL_SIZE 10
 #define MAX_RANK_SIZE 10
 #define MAX_MESSAGE_SIZE 30
@@ -813,17 +813,17 @@ Card *GetOptCard(Card **_cards, Card **_table, void *_context)
         // }
         // else
         // {
-            // /* 2.2 Dont have leading suit, try play highest hearts */
-            // size_t heartCount = CountSuitCards(_cards, HEARTS);
-            // if (heartCount > 0)
-            // {
-            //     selectedCard = GetHighestCardOfSuit(_cards, _numCards, HEARTS);
-            // }
-            // else
-            // {
-            /* 2.3 Play highest of others */
-            selectedCard = GetHighestCard(_cards, _numCards);
-            // }
+        // /* 2.2 Dont have leading suit, try play highest hearts */
+        // size_t heartCount = CountSuitCards(_cards, HEARTS);
+        // if (heartCount > 0)
+        // {
+        //     selectedCard = GetHighestCardOfSuit(_cards, _numCards, HEARTS);
+        // }
+        // else
+        // {
+        /* 2.3 Play highest of others */
+        selectedCard = GetHighestCard(_cards, _numCards);
+        // }
         // }
         return selectedCard;
     }

@@ -61,7 +61,19 @@ void DestroyDeck(Deck **_deck)
 {
     if (_deck != NULL && *_deck != NULL)
     {
-        VectorDestroy(&((*_deck)->m_cards), free);
+        if ((*_deck)->m_cards != NULL)
+        {
+            size_t numOfCards = VectorSize((*_deck)->m_cards);
+            for (size_t i = 0; i < numOfCards; ++i)
+            {
+                void *card;
+                if (VectorGet((*_deck)->m_cards, i, &card) == VECTOR_SUCCESS)
+                {
+                    free(card);
+                }
+            }
+        }
+        VectorDestroy(&((*_deck)->m_cards), NULL);
         free(*_deck);
         *_deck = NULL;
     }
@@ -131,11 +143,16 @@ static Deck *AllocateMemoryDeck(size_t _numOfDecks, size_t _numOfCards)
     {
         Card *newCard = malloc(sizeof(Card));
         if (newCard == NULL)
-        {
-            DestroyDeck(&newDeck);
+        {                          
+            DestroyDeck(&newDeck); 
+            return NULL;           
+        }
+        if (VectorAppend(newDeck->m_cards, newCard) != VECTOR_SUCCESS)
+        {                          
+            free(newCard);         
+            DestroyDeck(&newDeck); 
             return NULL;
         }
-        VectorAppend(newDeck->m_cards, newCard);
     }
 
     return newDeck;

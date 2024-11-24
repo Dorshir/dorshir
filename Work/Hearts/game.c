@@ -72,6 +72,8 @@ GameResult PlayGame(Game *_game)
     PrintScores(_game->m_round);
 
     free(winnerIndices);
+
+    DestroyGame(&_game);
     return GAME_SUCCESS;
 }
 

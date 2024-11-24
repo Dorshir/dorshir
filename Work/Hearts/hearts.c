@@ -33,6 +33,7 @@ int main()
     else if (PlayGame(game) != GAME_SUCCESS)
     {
         PrintMessage("Failed on playing the game.\n");
+        DestroyGame(&game);
     }
 
     return 0;
