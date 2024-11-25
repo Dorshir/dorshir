@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define BITS_IN_BYTE 8
 #define UCH_IN_BITS sizeof(unsigned char) * BITS_IN_BYTE
@@ -18,6 +19,8 @@ static void BuildCountBitLTU(unsigned char *_countBitLTU);
 static unsigned char ReverseBitsOp(unsigned char _num);
 static void BuildLTU(unsigned char *_LTU, Operation _op);
 static unsigned char FlipPairsOp(unsigned char _num);
+static void BuildOffsetBitLTU(unsigned char *_offsetBitLTU, unsigned char *_countBitsLTU);
+static int ThirdOnBitOffset(unsigned int _num, int _howMany);
 
 /************************************** Main functions ***************************************/
 
@@ -206,6 +209,55 @@ unsigned int FlipPairs(unsigned int _num)
     return result;
 }
 
+int ThirdOnBit(unsigned int _num)
+{
+    int count = 0;
+    int offset = 0;
+
+    while (_num && count < 3)
+    {
+        count += _num & 1;
+        _num >>= 1;
+        ++offset;
+    }
+
+    return count == 3 ? offset - 1 : -1;
+}
+
+int ThirdOnBitLTU(unsigned int _num)
+{
+    static unsigned char countBitsLTU[EIGHT_BIT_OPTIONS];
+    static unsigned char offsetBitsLTU[EIGHT_BIT_OPTIONS];
+    static int flag;
+
+    if (!flag)
+    {
+        BuildCountBitLTU(countBitsLTU);
+        BuildOffsetBitLTU(offsetBitsLTU, countBitsLTU);
+        flag = 1;
+    }
+
+    size_t numBytes = sizeof(unsigned int);
+    unsigned int result = 0;
+    int count = 0;
+    for (size_t byteNum = 0; byteNum < numBytes; byteNum++)
+    {
+        int bitNum = countBitsLTU[(_num >> (byteNum * BITS_IN_BYTE)) & 0xFF];
+        if (bitNum >= 3)
+        {
+            return offsetBitsLTU[(_num >> (byteNum * BITS_IN_BYTE)) & 0xFF];
+        }
+        result = bitNum == 0 ? result + (byteNum * BITS_IN_BYTE) : result + (offsetBitsLTU[(_num >> (byteNum * BITS_IN_BYTE)) & 0xFF]);
+        count += bitNum;
+        if (count >= 3)
+        {
+            return result;
+        }
+    }
+
+    return count >= 3 ? result : -1;
+}
+
 /************************************** Static functions ***************************************/
 
 static Status CompressChars(char *_str, int _length, int _index, char _curr, unsigned char *_compressedChar1, unsigned char *_compressedChar2)
@@ -292,4 +344,27 @@ static unsigned char FlipPairsOp(unsigned char _num)
         _num |= (first << (i + 1));
     }
     return _num;
+}
+
+static void BuildOffsetBitLTU(unsigned char *_offsetBitLTU, unsigned char *_countBitsLTU)
+{
+    for (size_t index = 0; index < EIGHT_BIT_OPTIONS; index++)
+    {
+        _offsetBitLTU[index] = ThirdOnBitOffset(index, fmin(_countBitsLTU[index], 3));
+    }
+}
+
+static int ThirdOnBitOffset(unsigned int _num, int _howMany)
+{
+    int count = 0;
+    int offset = 0;
+
+    while (_num && count < _howMany)
+    {
+        count += _num & 1;
+        _num >>= 1;
+        ++offset;
+    }
+
+    return count == _howMany ? offset - 1 : -1;
 }

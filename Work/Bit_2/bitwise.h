@@ -109,4 +109,9 @@ Bool IsPalindrom(unsigned int _num);
  */
 unsigned int FlipPairs(unsigned int _num);
 
+
+int ThirdOnBit(unsigned int _num);
+
+int ThirdOnBitLTU(unsigned int _num);
+
 #endif
