@@ -138,7 +138,6 @@ PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, PrintCard
             return PLAYER_THROW_CARD_FAILED;
         }
 
-        /* Should also be in BSTs .. */
         size_t validCardCount = GetValidCardsMachine(_player, _table, validCards, _rulesFunc, _rulesContext);
 
         if (validCardCount == 0)
@@ -402,7 +401,7 @@ static size_t GetValidCardsMachine(Player *_player, Card **_table, Card **validC
     BSTree *currBSTreeSuit;
     size_t cardIndex = 0;
 
-    for (size_t suit = 0; suit < NUMBER_OF_SUITS; suit++)
+    for (size_t suit = HEARTS; suit < NUMBER_OF_SUITS; suit++)
     {
         VectorGet(_player->m_cards, suit, (void **)&currBSTreeSuit);
         BSTreeItr begin = BSTreeItrBegin(currBSTreeSuit);
@@ -419,6 +418,7 @@ static size_t GetValidCardsMachine(Player *_player, Card **_table, Card **validC
             begin = BSTreeItrNext(begin);
         }
     }
+    validCards[cardIndex+1] = NULL;
     return cardIndex;
 }
 

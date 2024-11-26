@@ -4,7 +4,6 @@
 #include "player.h"
 #include <stddef.h> /* size_t */
 
-
 typedef struct Round Round;
 
 typedef enum Round_Result
@@ -17,7 +16,8 @@ typedef enum Round_Result
     ROUND_UNINITIALIZED_ERROR,
     ROUND_DECKS_SET_FAILURE,
     ROUND_PLAY_TRICK_FAILED,
-    ROUND_PASS_CARDS_FAILED
+    ROUND_PASS_CARDS_FAILED,
+    ROUND_REC_CARD_FAILURE
 
 } RoundResult;
 

@@ -17,6 +17,7 @@
 #define MAX_RANK_SIZE 10
 #define MAX_MESSAGE_SIZE 30
 #define ROUND_NOT_FOUND -1
+#define NUM_OF_DECKS 1
 
 #define IS_FIRST_TRICK(trick) (trick == 0)
 #define IS_HEART_SUIT(card) (card->m_suit == HEARTS)
@@ -77,7 +78,7 @@ static void DestroyTableCards(Card **_tableCards, size_t _length);
 static size_t WhoHasTwoClubs(Round *_round);
 int IsValidCard(Card *_card, Card **_table, void *_context);
 static void PrintCard(Card *_card);
-static void PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext);
+static RoundResult PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext);
 static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openingPlayerNum, size_t *_score, RulesContext *_rulesContext);
 static size_t CountSuitCards(Card **_cards, Suit _suit);
 static void SortCardsDescending(Card **_cards, size_t _numCards);
@@ -130,7 +131,7 @@ RoundResult Play(Round *_round, size_t _roundNum)
         return ROUND_UNINITIALIZED_ERROR;
     }
 
-    Deck *deck = CreateDeck(1);
+    Deck *deck = CreateDeck(NUM_OF_DECKS);
     if (deck == NULL)
     {
         return ROUND_ALLOCATION_ERROR;
@@ -169,7 +170,7 @@ size_t *IsThereAWinner(Round *_round, size_t *_numWinners)
 
     *_numWinners = 0;
 
-    int isGameOver = FALSE;
+    Bool isGameOver = FALSE;
     for (size_t i = 0; i < _round->m_numOfPlayers; i++)
     {
         if (_round->m_scores[i] >= END_GAME_SCORE)
@@ -304,6 +305,7 @@ static RoundResult InitCardsToPass(Card ***_cardsToPass, size_t _numOfPlayers)
 static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCards, StrategyContext *_strategyContext)
 {
     int relativeNext;
+    RoundResult status;
     if (_roundNum == FOURTH)
     {
         return ROUND_SUCCESS;
@@ -322,45 +324,86 @@ static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCar
         return ROUND_ALLOCATION_ERROR;
     }
 
+    status = GetChosenCards(_round, cardsToPass, _tableCards, _strategyContext);
+    if (status != ROUND_SUCCESS)
+    {
+        return status;
+    }
+
     GetRelativeNextPos(_roundNum, &relativeNext);
 
-    for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
+    status = PassToAnotherPlayer(_round, cardsToPass, relativeNext);
+    if (status != ROUND_SUCCESS)
     {
-        for (size_t cardNum = 0; cardNum < NUM_OF_CARDS_PASS; cardNum++)
-        {
-            if (ThrowCard(_round->m_players[playerNum], &cardsToPass[playerNum][cardNum], _tableCards, PrintCard, IsValidCard, GetOptCardPass, NULL, _strategyContext) != PLAYER_SUCCESS)
-            {
-                for (size_t i = 0; i <= playerNum; i++)
-                {
-                    free(cardsToPass[i]);
-                }
-                free(cardsToPass);
-                return ROUND_PASS_CARDS_FAILED;
-            }
-        }
+        return status;
     }
 
-    PassToAnotherPlayer(_round, cardsToPass, relativeNext);
-
-    for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
-    {
-        free(cardsToPass[playerNum]);
-    }
-    free(cardsToPass);
+    DestroyCardsToPass(&cardsToPass, _round->m_numOfPlayers);
 
     return ROUND_SUCCESS;
 }
 
-static void PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext)
+static RoundResult GetChosenCards(Round *_round, Card ***_cardsToPass, Card **_tableCards, StrategyContext *_strategyContext)
+{
+    for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
+    {
+        for (size_t cardNum = 0; cardNum < NUM_OF_CARDS_PASS; cardNum++)
+        {
+            if (ThrowCard(_round->m_players[playerNum], &_cardsToPass[playerNum][cardNum], _tableCards, PrintCard, IsValidCard, GetOptCardPass, NULL, _strategyContext) != PLAYER_SUCCESS)
+            {
+                for (size_t i = 0; i <= playerNum; i++)
+                {
+                    free(_cardsToPass[i]);
+                }
+                free(_cardsToPass);
+                return ROUND_PASS_CARDS_FAILED;
+            }
+        }
+    }
+    return ROUND_SUCCESS;
+}
+
+static void DestroyCardsToPass(Card ****_cardsToPass, size_t _numOfPlayers)
+{
+    for (size_t playerNum = 0; playerNum < _numOfPlayers; playerNum++)
+    {
+        free(*(_cardsToPass[playerNum]));
+    }
+    free(*_cardsToPass);
+}
+
+static RoundResult PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext)
 {
     for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
     {
         size_t nextPlayerIndex = (_round->m_numOfPlayers + playerNum + _relativeNext) % _round->m_numOfPlayers;
         for (size_t cardNum = 0; cardNum < NUM_OF_CARDS_PASS; cardNum++)
         {
-            ReceiveCard(_round->m_players[nextPlayerIndex], &_cardsToPass[playerNum][cardNum]);
+            PlayerResult res = ReceiveCard(_round->m_players[nextPlayerIndex], &_cardsToPass[playerNum][cardNum]);
+            if (res != PLAYER_SUCCESS)
+            {
+                return StatusConverter(res);
+            }
         }
     }
+    return ROUND_SUCCESS;
+}
+
+static RoundResult StatusConverter(PlayerResult _status)
+{
+    RoundResult result;
+    switch (_status)
+    {
+    case PLAYER_UNINITIALIZED:
+        result = ROUND_UNINITIALIZED_ERROR;
+        break;
+    case PLAYER_REC_CRAD_FAILED:
+        result = ROUND_REC_CARD_FAILURE;
+        break;
+    default:
+        break;
+    }
+    return result;
 }
 
 static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openingPlayerNum, size_t *_score, RulesContext *_rulesContext)
@@ -371,7 +414,7 @@ static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openingPlayerN
     for (size_t i = 1; i < _round->m_numOfPlayers; i++)
     {
         Card *currCard = _tableCards[i];
-        if (ARE_SAME_SUIT(highestCard, currCard) && currCard->m_rank > highestCard->m_rank)
+        if (_rulesContext->m_trickSuit == currCard->m_suit && currCard->m_rank > highestCard->m_rank)
         {
             highestCard = currCard;
             highestPlayerNum = i;
@@ -434,7 +477,6 @@ static void GetSymb(char *_symb, Suit _cardSuit)
         strcat(_symb, CLUB_SYMB);
         break;
     default:
-        strcat(_symb, "?");
         break;
     }
 }
@@ -502,11 +544,12 @@ static RoundResult PlayTrick(Round *_round, Card **_tableCards, StrategyContext 
 {
     for (size_t playerNum = 0; playerNum < _round->m_numOfPlayers; playerNum++)
     {
-        size_t relativeIndex = GET_RELATIVE_INDEX(playerNum, _rulesContext, _round);
 
-        if (playerNum > 0)
+        size_t relativeIndex = GET_RELATIVE_INDEX(playerNum, _rulesContext, _round);
+        _rulesContext->m_hasTrickSuitCards = FALSE;
+        if (_rulesContext->m_numOfCardsOnTable > 0)
         {
-            _rulesContext->m_hasTrickSuitCards = PlayerHasSuit(_round->m_players[relativeIndex], _rulesContext->m_trickSuit) ? 1 : 0;
+            _rulesContext->m_hasTrickSuitCards = PlayerHasSuit(_round->m_players[relativeIndex], _rulesContext->m_trickSuit) ? TRUE : FALSE;
         }
         if (ThrowCard(_round->m_players[relativeIndex], &_tableCards[playerNum], _tableCards,
                       PrintCard, IsValidCard, GetOptCard, _rulesContext, _strategyContext) != PLAYER_SUCCESS)
@@ -522,8 +565,6 @@ static RoundResult PlayTrick(Round *_round, Card **_tableCards, StrategyContext 
         ++_rulesContext->m_numOfCardsOnTable;
 
         PrintTable(_tableCards, _rulesContext->m_numOfCardsOnTable);
-
-        _rulesContext->m_hasTrickSuitCards = 0;
     }
 
     ++_strategyContext->m_trickNum;
@@ -752,7 +793,7 @@ int IsValidCard(Card *_card, Card **_table, void *_context)
     else
     {
         Card *openingCard = _table[rules->m_openingPlayerNum];
-        if (openingCard != NULL && (!ARE_SAME_SUIT(_card, openingCard)) && rules->m_hasTrickSuitCards)
+        if (!ARE_SAME_SUIT(_card, openingCard) && rules->m_hasTrickSuitCards)
         {
             // PrintMessage("Must follow suit if you have a card of the same suit.\n");
             return FALSE;
