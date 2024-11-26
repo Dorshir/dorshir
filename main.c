@@ -1,46 +1,53 @@
-#include "PointerToFunc/pointer_to_func.c"
 
-#include <stdlib.h>
-#include <math.h>
 #include <stdio.h>
+#include <assert.h>
+#include <stdlib.h>
 
-static void PrintArray(const int *arr, size_t length)
+#define ASSERT(X) (X) ? 0 : (fprintf(stderr, "Assertion in line %d, in exp: (" #X ")\n", __LINE__))
+
+int IsLST()
 {
-    printf("Array: [");
-    for (size_t i = 0; i < length; i++)
+    int a = 5;
+
+    char *b = &a;
+    if (*b == 5)
     {
-        printf("%d, ", arr[i]);
+        return 1;
     }
-    printf("]\n");
+    else
+    {
+        return 0;
+    }
 }
 
-static int CompareAscending(int a, int b)
+int func(int _num)
 {
-    return a > b;
-}
+    if (_num == 0)
+    {
+        return 0;
+    }
+    if (_num == 1)
+    {
+        return 1;
+    }
+    if (_num == 2)
+    {
+        return 2;
+    }
 
-static int CompareDescending(int a, int b)
-{
-    return a < b;
-}
-
-static int CompareBySinus(int a, int b)
-{
-    return sin((double)(a)) > sin((double)b);
-}
-
-static int CompareByLeastSignificantDigit(int a, int b)
-{
-    int lsd_a = abs(a) % 10; 
-    int lsd_b = abs(b) % 10; 
-
-    return lsd_a > lsd_b;
+    return func(_num - 1) + func(_num - 2);
 }
 
 int main()
 {
-    const int i = 5;
-    int* ptr = &i;
 
-    return 0;
+    printf("Is Little-Endian? %s\n", IsLST() == 1 ? "TRUE" : "FALSE");
+
+    int num = 4;
+    printf("Number of option for a ledder of size %d: %d\n", num, func(num));
+
+        return 0;
 }
+
+
+
