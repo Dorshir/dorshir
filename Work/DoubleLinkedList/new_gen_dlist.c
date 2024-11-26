@@ -151,7 +151,7 @@ ListItr ListItrEnd(const List *_list)
     {
         return NULL;
     }
-    return &_list->m_tail;
+    return (void*)&_list->m_tail;
 }
 
 int ListItrEquals(const ListItr _a, const ListItr _b)

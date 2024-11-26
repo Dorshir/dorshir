@@ -404,7 +404,7 @@ size_t GetMapCap(HashMap *_map)
 {
     return _map->m_capacity;
 }
-size_t GetNItems(HashMap *_map)
+size_t GetNItemsHash(HashMap *_map)
 {
     return _map->m_numOfItems;
 }
