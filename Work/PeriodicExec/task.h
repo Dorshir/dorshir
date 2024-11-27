@@ -12,4 +12,6 @@ Task *Task_Create(TaskFunc _taskFunc, void *_context, size_t _period_ms, size_t 
 
 Task *Task_Destroy(Task **_task);
 
+int Task_Execute(Task *_task);
+
 #endif /* __TASK_H__ */

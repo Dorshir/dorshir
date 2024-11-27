@@ -1,9 +1,10 @@
 #include "task.h"
-#include <stdio.h>
+#include <stdio.h>  /* NULL */
+#include <limits.h> /* INT_MAX */
 
 struct Task
 {
-    void *m_func;
+    TaskFunc m_func;
     void *m_context;
     size_t m_period;
     size_t m_t2e;
@@ -14,7 +15,6 @@ typedef enum Task_Result
     TASK_SUCCESS,
     TASK_ALLOCATION_ERROR,
     TASK_UNINITIALIZE_ERROR
-
 } TaskResult;
 
 static TaskResult CreateInputCheck(TaskFunc _taskFunc, void *_context, size_t _period_ms);
@@ -41,6 +41,15 @@ Task *Task_Create(TaskFunc _taskFunc, void *_context, size_t _period_ms, size_t 
     newTask->m_t2e = 1; /* need to be period + current time( should depend on the clock id.. )*/
 
     return newTask;
+}
+
+int Task_Execute(Task *_task)
+{
+    if (_task == NULL)
+    {
+        return INT_MAX;
+    }
+    return _task->m_func(_task->m_context);
 }
 
 Task *Task_Destroy(Task **_task)

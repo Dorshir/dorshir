@@ -2,8 +2,15 @@
 #define __EXECUTER_H__
 
 #include <sys/types.h> /* clockid_t */
-#include <stddef.h>  /* size_t */
+#include <stddef.h>    /* size_t */
 
+typedef enum PeriodicExecutorResult
+{
+    PE_SUCCESS,
+    PE_ALLOCATION_ERROR,
+    PE_UNINITIALIZED_ERROR,
+    PE_PERIOD_ERROR
+}PeriodicExecutorResult;
 
 typedef PeriodicExecutor PeriodicExecutor;
 
