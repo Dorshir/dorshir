@@ -1,4 +1,5 @@
 #include "task.h"
+#include "calctime.h"
 #include <stdio.h>  /* NULL */
 #include <limits.h> /* INT_MAX */
 
@@ -21,7 +22,7 @@ static TaskResult CreateInputCheck(TaskFunc _taskFunc, void *_context, size_t _p
 
 /* **************** * API Functions * **************** */
 
-Task *Task_Create(TaskFunc _taskFunc, void *_context, size_t _period_ms, size_t _t2e_ms)
+Task *Task_Create(TaskFunc _taskFunc, void *_context, size_t _period_ms, clockid_t _clk_id)
 {
     TaskResult res = CreateInputCheck(_taskFunc, _context, _period_ms);
     if (res != TASK_SUCCESS)
@@ -32,13 +33,13 @@ Task *Task_Create(TaskFunc _taskFunc, void *_context, size_t _period_ms, size_t 
     Task *newTask = malloc(sizeof(Task));
     if (newTask == NULL)
     {
-        return TASK_ALLOCATION_ERROR;
+        return NULL;
     }
 
     newTask->m_func = _taskFunc;
     newTask->m_context = _context;
     newTask->m_period = _period_ms;
-    newTask->m_t2e = 1; /* need to be period + current time( should depend on the clock id.. )*/
+    newTask->m_t2e = GetCurrentTime_ms(_clk_id) + _period_ms;
 
     return newTask;
 }
@@ -52,7 +53,7 @@ int Task_Execute(Task *_task)
     return _task->m_func(_task->m_context);
 }
 
-Task *Task_Destroy(Task **_task)
+void Task_Destroy(Task **_task)
 {
     if (_task == NULL || *_task == NULL)
     {

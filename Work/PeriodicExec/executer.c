@@ -2,10 +2,13 @@
 #include "dynamicVector.h"
 #include "genheap.h"
 #include "task.h"
+#include <stdlib.h> /* free, malloc */
 #include <stdio.h>  /* NULL */
 #include <time.h>   /* */
 #include <string.h> /* strcpy */
 #include <stdint.h> /* SIZE_MAX */
+
+#define SMALL_PERIOD 0.00001
 
 typedef enum Bool
 {
@@ -22,6 +25,7 @@ struct PeriodicExecutor
 };
 
 static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_taskFunction)(void *), void *_context, size_t _period_ms);
+int TaskComparator(const void *_a, const void *_b);
 
 /* **************** * API Functions * **************** */
 
@@ -49,12 +53,12 @@ PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id)
         return NULL;
     }
 
-    newPe->m_name[length] = '\0';
+    newPe->m_name[length] = '\0'; /* null-termination for strcpy */
     strcpy(newPe->m_name, _name);
 
     newPe->m_pauseFlag = FALSE;
 
-    if (VectorCreate(5, 3) != VECTOR_SUCCESS)
+    if (VectorCreate(5, 3) == NULL)
     {
         free(newPe->m_name);
         free(newPe);
@@ -67,7 +71,12 @@ PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id)
 int PeriodicExecutor_Add(PeriodicExecutor *_executor, int (*_taskFunction)(void *), void *_context, size_t _period_ms)
 {
     PeriodicExecutorResult res = AddInputCheck(_executor, _taskFunction, _context, _period_ms);
-    Task *newTask = Task_Create(_taskFunction, _context, _period_ms, 0); /* should not be 0, s hould be period + current */
+    if (res != PE_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    Task *newTask = Task_Create(_taskFunction, _context, _period_ms, _executor->m_clk_id);
     if (newTask == NULL)
     {
         return FALSE;
@@ -84,8 +93,7 @@ int PeriodicExecutor_Add(PeriodicExecutor *_executor, int (*_taskFunction)(void 
 size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
 {
     size_t executeCycles = 0;
-
-    Heap *minHeap = HeapBuild(_executor->m_tasks, 1); /* should place a comperator based on the clockid at the executor and the t2e of each task */
+    Heap *minHeap = HeapBuild(_executor->m_tasks, TaskComparator);
     if (minHeap == NULL)
     {
         return executeCycles;
@@ -96,21 +104,35 @@ size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
         Task *extractedTask = HeapExtract(minHeap);
         if (extractedTask == NULL)
         {
-            return executeCycles;
+            break;
+        }
+
+        size_t currentTime = GetCurrentTime_ms(_executor->m_clk_id);
+        while (currentTime < extractedTask->m_t2e)
+        {
+            currentTime = GetCurrentTime_ms(_executor->m_clk_id);
+            /* busy wait (maybe condition variable is better) */
         }
 
         if (Task_Execute(extractedTask) == 0)
         {
-            /* calc new t2e for this task based on currenttime + period */
+            currentTime = GetCurrentTime_ms(_executor->m_clk_id);
+            extractedTask->m_t2e = currentTime + extractedTask->m_period;
             if (HeapInsert(minHeap, extractedTask) != HEAP_SUCCESS)
             {
-                free(minHeap);
+                Task_Destroy(&extractedTask);
+                HeapDestroy(&minHeap);
                 return SIZE_MAX;
             }
         }
-
+        else
+        {
+            Task_Destroy(&extractedTask);
+        }
         ++executeCycles;
     }
+
+    HeapDestroy(&minHeap);
     return executeCycles;
 }
 
@@ -120,12 +142,24 @@ size_t PeriodicExecutor_Pause(PeriodicExecutor *_executor)
     {
         return SIZE_MAX;
     }
-    _executor->m_pauseFlag = TRUE;
+
+    if (PeriodicExecutor_Add(_executor, Pause, _executor, SMALL_PERIOD) == FALSE)
+    {
+        return SIZE_MAX;
+    }
+
     return VectorSize(_executor->m_tasks);
 }
 
 void PeriodicExecutor_Destroy(PeriodicExecutor *_executor)
 {
+    if (_executor == NULL)
+    {
+        return;
+    }
+    VectorDestroy(_executor->m_tasks, free);
+    free(_executor->m_name);
+    free(_executor);
 }
 
 /* **************** * Static Functions * **************** */
@@ -141,4 +175,33 @@ static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_
         return PE_PERIOD_ERROR;
     }
     return PE_SUCCESS;
+}
+
+int TaskComparator(const void *_a, const void *_b)
+{
+    if (_a == NULL || _b == NULL)
+    {
+        return 0;
+    }
+
+    const Task *taskA = *(const Task **)_a;
+    const Task *taskB = *(const Task **)_b;
+
+    if (taskA->m_t2e < taskB->m_t2e)
+    {
+        return 1;
+    }
+    else if (taskA->m_t2e > taskB->m_t2e)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+void Pause(PeriodicExecutor *_executor)
+{
+    _executor->m_pauseFlag = TRUE;
 }
