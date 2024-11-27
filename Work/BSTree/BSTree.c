@@ -405,7 +405,7 @@ Node *GetTreeRoot(BSTree *_tree)
 {
     return &_tree->m_root;
 }
-void *GetData(Node *_node)
+void *GetDataBSTree(Node *_node)
 {
     return _node->m_data;
 }
