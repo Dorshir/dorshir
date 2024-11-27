@@ -5,7 +5,7 @@
 
 
 
-typedef Task Task;
+typedef struct Task Task;
 typedef int (*TaskFunc)(void *_context);
 
 Task *Task_Create(TaskFunc _taskFunc, void *_context, size_t _period_ms, clockid_t _clk_id);

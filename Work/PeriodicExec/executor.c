@@ -1,4 +1,4 @@
-#include "executer.h"
+#include "executor.h"
 #include "dynamicVector.h"
 #include "genheap.h"
 #include "task.h"
@@ -7,8 +7,6 @@
 #include <time.h>   /* */
 #include <string.h> /* strcpy */
 #include <stdint.h> /* SIZE_MAX */
-
-#define SMALL_PERIOD 0.00001
 
 typedef enum Bool
 {
@@ -53,7 +51,7 @@ PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id)
         return NULL;
     }
 
-    newPe->m_name[length] = '\0'; /* null-termination for strcpy */
+    newPe->m_name[length] = '\0';  /* null-termination for strcpy */
     strcpy(newPe->m_name, _name);
 
     newPe->m_pauseFlag = FALSE;
@@ -142,12 +140,8 @@ size_t PeriodicExecutor_Pause(PeriodicExecutor *_executor)
     {
         return SIZE_MAX;
     }
-
-    if (PeriodicExecutor_Add(_executor, Pause, _executor, SMALL_PERIOD) == FALSE)
-    {
-        return SIZE_MAX;
-    }
-
+    
+    _executor->m_pauseFlag = TRUE;
     return VectorSize(_executor->m_tasks);
 }
 
@@ -199,9 +193,4 @@ int TaskComparator(const void *_a, const void *_b)
     {
         return 0;
     }
-}
-
-void Pause(PeriodicExecutor *_executor)
-{
-    _executor->m_pauseFlag = TRUE;
 }

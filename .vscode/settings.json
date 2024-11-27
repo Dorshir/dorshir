@@ -20,6 +20,7 @@
         "sstream": "c",
         "type_traits": "c",
         "typeinfo": "c",
-        "bitwise.h": "c"
+        "bitwise.h": "c",
+        "task.h": "c"
     }
 }

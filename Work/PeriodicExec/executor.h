@@ -1,5 +1,5 @@
-#ifndef __EXECUTER_H__
-#define __EXECUTER_H__
+#ifndef __EXECUTOR_H__
+#define __EXECUTOR_H__
 
 #include <sys/types.h> /* clockid_t */
 #include <stddef.h>    /* size_t */
@@ -10,9 +10,9 @@ typedef enum PeriodicExecutorResult
     PE_ALLOCATION_ERROR,
     PE_UNINITIALIZED_ERROR,
     PE_PERIOD_ERROR
-}PeriodicExecutorResult;
+} PeriodicExecutorResult;
 
-typedef PeriodicExecutor PeriodicExecutor;
+typedef struct PeriodicExecutor PeriodicExecutor;
 
 PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id);
 
@@ -24,4 +24,4 @@ size_t PeriodicExecutor_Pause(PeriodicExecutor *_executor);
 
 void PeriodicExecutor_Destroy(PeriodicExecutor *_executor);
 
-#endif /* __EXECUTER_H__ */
+#endif /* __EXECUTOR_H__ */
