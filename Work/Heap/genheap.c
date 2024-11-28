@@ -21,7 +21,7 @@ struct Heap
 static void SwapData(Heap *_heap, size_t _index1, size_t _index2);
 static void BubbleUp(Heap *_heap);
 static void FixAsHeap(Heap *_heap);
-static size_t FindYoungestFather(Heap *_heap);
+static int FindYoungestFather(Heap *_heap);
 static void Heapify(Heap *_heap, size_t _index);
 static int GetNextPosition(void *_leftData, void *_rightData, LessThanComparator _pfLess, void **_comparedData);
 
@@ -179,9 +179,9 @@ static void BubbleUp(Heap *_heap)
     }
 }
 
-static size_t FindYoungestFather(Heap *_heap)
+static int FindYoungestFather(Heap *_heap)
 {
-    if (_heap->m_heapSize == 0)
+    if (_heap->m_heapSize <= 1)
     {
         return 0;
     }
@@ -231,7 +231,8 @@ static int GetNextPosition(void *_leftData, void *_rightData, LessThanComparator
 static void FixAsHeap(Heap *_heap)
 {
     /* check the change to size_t instead of int, if not working, consider run to >0 and handle 0 after while */
-    size_t index = FindYoungestFather(_heap);
+    int index = FindYoungestFather(_heap);
+
     while (index >= 0)
     {
         Heapify(_heap, index);

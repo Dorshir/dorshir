@@ -1,7 +1,7 @@
 TARGET= libds.so
 CC= gcc
 CFLAGS= -g -pedantic -fPIC
-OBJS= dynamicVector.o new_gen_dlist.o hashmap.o stack.o genQueue.o BSTree.o
+OBJS= dynamicVector.o new_gen_dlist.o hashmap.o stack.o genQueue.o BSTree.o genheap.o
 
 VECTOR_PATH=../DynamicVector/
 HEAP_PATH=../Heap/
@@ -32,7 +32,7 @@ stack.o: $(STACK_PATH)stack.c $(STACK_PATH)stack.h $(STACK_PATH)dynamicVector.h
 genQueue.o: $(QUEUE_PATH)genQueue.c $(QUEUE_PATH)genQueue.h
 		$(CC) $(CFLAGS) -c $(QUEUE_PATH)genQueue.c
 
-genheap.o: $(HEAP_PATH)genheap.c $(HEAP_PATH)genheap.h $(HEAP_PATH)dynamicVector.h
+genheap.o: $(HEAP_PATH)genheap.c $(HEAP_PATH)genheap.h $(VECTOR_PATH)dynamicVector.h
 		$(CC) $(CFLAGS) -c $(HEAP_PATH)genheap.c
 
 BSTree.o: $(BSTREE_PATH)BSTree.c $(BSTREE_PATH)BSTree.h

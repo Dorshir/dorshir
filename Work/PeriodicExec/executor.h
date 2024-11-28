@@ -1,7 +1,9 @@
 #ifndef __EXECUTOR_H__
 #define __EXECUTOR_H__
 
-#include <sys/types.h> /* clockid_t */
+#define _POSIX_C_SOURCE 199309L
+
+#include <time.h>
 #include <stddef.h>    /* size_t */
 
 typedef enum PeriodicExecutorResult

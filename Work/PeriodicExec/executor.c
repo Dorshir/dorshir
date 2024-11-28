@@ -20,10 +20,10 @@ struct PeriodicExecutor
     clockid_t m_clk_id;
     char *m_name;
     Bool m_pauseFlag;
+    size_t m_magic;
 };
 
-static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_taskFunction)(void *), void *_context, size_t _period_ms);
-int TaskComparator(const void *_a, const void *_b);
+static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_taskFunction)(void *), size_t _period_ms);
 
 /* **************** * API Functions * **************** */
 
@@ -42,6 +42,8 @@ PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id)
 
     newPe->m_clk_id = _clk_id;
 
+    newPe->m_magic = SIZE_MAX;
+
     size_t length = strlen(_name);
 
     newPe->m_name = malloc((length + 1) * sizeof(char));
@@ -51,12 +53,14 @@ PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id)
         return NULL;
     }
 
-    newPe->m_name[length] = '\0';  /* null-termination for strcpy */
+    newPe->m_name[length] = '\0'; /* null-termination for strcpy */
     strcpy(newPe->m_name, _name);
 
     newPe->m_pauseFlag = FALSE;
 
-    if (VectorCreate(5, 3) == NULL)
+    newPe->m_tasks = VectorCreate(5, 3);
+
+    if (newPe->m_tasks == NULL)
     {
         free(newPe->m_name);
         free(newPe);
@@ -68,7 +72,7 @@ PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id)
 
 int PeriodicExecutor_Add(PeriodicExecutor *_executor, int (*_taskFunction)(void *), void *_context, size_t _period_ms)
 {
-    PeriodicExecutorResult res = AddInputCheck(_executor, _taskFunction, _context, _period_ms);
+    PeriodicExecutorResult res = AddInputCheck(_executor, _taskFunction, _period_ms);
     if (res != PE_SUCCESS)
     {
         return FALSE;
@@ -91,31 +95,28 @@ int PeriodicExecutor_Add(PeriodicExecutor *_executor, int (*_taskFunction)(void 
 size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
 {
     size_t executeCycles = 0;
+
+    VectorForEach(_executor->m_tasks, SetTime2Exec, NULL);
+
     Heap *minHeap = HeapBuild(_executor->m_tasks, TaskComparator);
     if (minHeap == NULL)
     {
         return executeCycles;
     }
 
+
     while (_executor->m_pauseFlag == FALSE)
     {
+
+
         Task *extractedTask = HeapExtract(minHeap);
         if (extractedTask == NULL)
         {
             break;
         }
 
-        size_t currentTime = GetCurrentTime_ms(_executor->m_clk_id);
-        while (currentTime < extractedTask->m_t2e)
-        {
-            currentTime = GetCurrentTime_ms(_executor->m_clk_id);
-            /* busy wait (maybe condition variable is better) */
-        }
-
         if (Task_Execute(extractedTask) == 0)
         {
-            currentTime = GetCurrentTime_ms(_executor->m_clk_id);
-            extractedTask->m_t2e = currentTime + extractedTask->m_period;
             if (HeapInsert(minHeap, extractedTask) != HEAP_SUCCESS)
             {
                 Task_Destroy(&extractedTask);
@@ -140,27 +141,29 @@ size_t PeriodicExecutor_Pause(PeriodicExecutor *_executor)
     {
         return SIZE_MAX;
     }
-    
+
     _executor->m_pauseFlag = TRUE;
     return VectorSize(_executor->m_tasks);
 }
 
 void PeriodicExecutor_Destroy(PeriodicExecutor *_executor)
 {
-    if (_executor == NULL)
+    if (_executor == NULL || _executor->m_magic == 0)
     {
         return;
     }
-    VectorDestroy(_executor->m_tasks, free);
+
+    VectorDestroy(&_executor->m_tasks, free);
     free(_executor->m_name);
+    _executor->m_magic = 0;
     free(_executor);
 }
 
 /* **************** * Static Functions * **************** */
 
-static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_taskFunction)(void *), void *_context, size_t _period_ms)
+static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_taskFunction)(void *), size_t _period_ms)
 {
-    if (_executor == NULL || _taskFunction == NULL || _context == NULL)
+    if (_executor == NULL || _taskFunction == NULL)
     {
         return PE_UNINITIALIZED_ERROR;
     }
@@ -171,26 +174,29 @@ static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_
     return PE_SUCCESS;
 }
 
-int TaskComparator(const void *_a, const void *_b)
+/* GETTERS */
+
+Vector *GetTasks(PeriodicExecutor *_executor)
 {
-    if (_a == NULL || _b == NULL)
-    {
-        return 0;
-    }
+    return _executor->m_tasks;
+}
 
-    const Task *taskA = *(const Task **)_a;
-    const Task *taskB = *(const Task **)_b;
+clockid_t GetClockID(PeriodicExecutor *_executor)
+{
+    return _executor->m_clk_id;
+}
 
-    if (taskA->m_t2e < taskB->m_t2e)
-    {
-        return 1;
-    }
-    else if (taskA->m_t2e > taskB->m_t2e)
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
+char *GetName(PeriodicExecutor *_executor)
+{
+    return _executor->m_name;
+}
+
+int GetPauseFlag(PeriodicExecutor *_executor)
+{
+    return _executor->m_pauseFlag;
+}
+
+size_t GetMagicNum(PeriodicExecutor *_executor)
+{
+    return _executor->m_magic;
 }
