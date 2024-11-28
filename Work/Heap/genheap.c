@@ -1,5 +1,6 @@
 #include "genheap.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 #define LAST_INSERTED_INDEX(heap) (heap->m_heapSize - 1)
 #define GET_LAST_INSERTED_ITEM(heap, lastInserted) (VectorGet(heap->m_vec, LAST_INSERTED_INDEX(heap), &lastInserted))
@@ -210,7 +211,7 @@ static void Heapify(Heap *_heap, size_t _currIndex)
     }
     direction = GetNextPosition(leftData, rightData, _heap->_pfLess, &comparedData);
     nextIndex = (direction == LEFT) ? LEFT_CHILD(_currIndex) : RIGHT_CHILD(_currIndex);
-    if (_heap->_pfLess(comparedData, currData))
+    if (_heap->_pfLess(comparedData, currData) > 0)
     {
         SwapData(_heap, _currIndex, nextIndex);
         Heapify(_heap, nextIndex);
@@ -219,7 +220,7 @@ static void Heapify(Heap *_heap, size_t _currIndex)
 
 static int GetNextPosition(void *_leftData, void *_rightData, LessThanComparator _pfLess, void **_comparedData)
 {
-    if (_rightData != NULL && _pfLess(_rightData, _leftData))
+    if (_rightData != NULL && (_pfLess(_rightData, _leftData) > 0))
     {
         *_comparedData = _rightData;
         return RIGHT;
@@ -230,7 +231,6 @@ static int GetNextPosition(void *_leftData, void *_rightData, LessThanComparator
 
 static void FixAsHeap(Heap *_heap)
 {
-    /* check the change to size_t instead of int, if not working, consider run to >0 and handle 0 after while */
     int index = FindYoungestFather(_heap);
 
     while (index >= 0)

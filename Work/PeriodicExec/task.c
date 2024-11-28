@@ -7,12 +7,14 @@
 #include <limits.h> /* INT_MAX */
 #include <stdlib.h> /* malloc, free */
 
+#define MILLION 1000000
+
 struct Task
 {
     TaskFunc m_func;
     void *m_context;
     size_t m_period;
-    size_t m_t2e;
+    struct timespec *m_t2e;
     clockid_t m_clk_id;
 };
 
@@ -43,9 +45,15 @@ Task *Task_Create(TaskFunc _taskFunc, void *_context, size_t _period_ms, clockid
 
     newTask->m_func = _taskFunc;
     newTask->m_context = _context;
-    newTask->m_period = _period_ms;
+    newTask->m_period = _period_ms * MILLION;
     newTask->m_clk_id = _clk_id;
-    newTask->m_t2e = 0;
+
+    newTask->m_t2e = calloc(1, sizeof(struct timespec));
+    if (newTask->m_t2e == NULL)
+    {
+        free(newTask);
+        return NULL;
+    }
 
     return newTask;
 }
@@ -57,12 +65,12 @@ int Task_Execute(Task *_task)
         return INT_MAX;
     }
 
-    size_t currentTime = GetCurrentTime_ms(_task->m_t2e);
-    while (currentTime < _task->m_t2e)
-    {
-        currentTime = GetCurrentTime_ms(_task->m_clk_id);
-        /* busy wait (maybe condition variable is better) */
-    }
+    struct timespec curr = {0};
+
+    CalcTime(_task->m_clk_id,0, &curr);
+
+    SleepIfNeeds(_task->m_clk_id, _task->m_t2e, &curr);
+
     return _task->m_func(_task->m_context);
 }
 
@@ -73,14 +81,16 @@ int TaskComparator(const void *_a, const void *_b)
         return 0;
     }
 
-    const Task *taskA = *(const Task **)_a;
-    const Task *taskB = *(const Task **)_b;
+    const Task *taskA = (const Task *)_a;
+    const Task *taskB = (const Task *)_b;
 
-    if (taskA->m_t2e < taskB->m_t2e)
+    int res = TimeComperator(taskA->m_clk_id, taskA->m_t2e, taskB->m_t2e);
+
+    if (res > 0)
     {
         return 1;
     }
-    else if (taskA->m_t2e > taskB->m_t2e)
+    else if (res < 0)
     {
         return -1;
     }
@@ -96,8 +106,9 @@ int SetTime2Exec(void *_element, size_t _index, void *_context)
     {
         return 0;
     }
-    Task* task = (Task*)_element; 
-    task->m_t2e = GetCurrentTime_ms(task->m_clk_id) + task->m_period;
+    Task *task = (Task *)_element;
+
+    CalcTime(task->m_clk_id, task->m_period, task->m_t2e);
 
     return 1;
 }
@@ -108,6 +119,7 @@ void Task_Destroy(Task **_task)
     {
         return;
     }
+    free((*_task)->m_t2e);
     free(*_task);
     *_task = NULL;
 }
@@ -121,4 +133,9 @@ static TaskResult CreateInputCheck(TaskFunc _taskFunc, size_t _period_ms)
         return TASK_UNINITIALIZE_ERROR;
     }
     return TASK_SUCCESS;
+}
+
+struct timespec *GetT2E(Task *_task)
+{
+    return _task->m_t2e;
 }

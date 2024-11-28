@@ -8,6 +8,8 @@
 #include <string.h> /* strcpy */
 #include <stdint.h> /* SIZE_MAX */
 
+size_t GetT2E(Task *_task);
+
 typedef enum Bool
 {
     FALSE,
@@ -102,13 +104,10 @@ size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
     if (minHeap == NULL)
     {
         return executeCycles;
-    }
-
+    }   
 
     while (_executor->m_pauseFlag == FALSE)
     {
-
-
         Task *extractedTask = HeapExtract(minHeap);
         if (extractedTask == NULL)
         {

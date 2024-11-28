@@ -1,14 +1,62 @@
 #define _POSIX_C_SOURCE 199309L
+#define _XOPEN_SOURCE 500
 
 #include "calctime.h"
 #include <time.h>
+#include <unistd.h>
 
-size_t GetCurrentTime_ms(clockid_t clk_id)
+#define MILLIARD 1000000000
+#define TOTAL_TIME(ts) (ts->tv_sec * MILLIARD + ts->tv_nsec)
+
+void CalcTime(clockid_t _clk_id, size_t _period, struct timespec *_ts)
 {
-    struct timespec ts;
-    if (clock_gettime(clk_id, &ts) != 0)
+    if (_ts == NULL)
+    {
+        return;
+    }
+    clock_gettime(_clk_id, _ts);
+    _ts->tv_nsec += _period;
+}
+
+void SleepIfNeeds(clockid_t _clk_id, struct timespec *_taskTs, struct timespec *_currTs)
+{
+    if (_taskTs == NULL || _currTs == NULL)
+    {
+        return;
+    }
+
+    if (TimeComperator(_clk_id, _currTs, _taskTs) == 1)
+    {
+        long seconds_diff = _taskTs->tv_sec - _currTs->tv_sec;
+        long nanoseconds_diff = _taskTs->tv_nsec - _currTs->tv_nsec;
+
+        if (nanoseconds_diff < 0)
+        {
+            nanoseconds_diff += 1000000000;
+            seconds_diff -= 1;
+        }
+
+        long total_microseconds = seconds_diff * 1000000 + nanoseconds_diff / 1000;
+
+        if (total_microseconds > 0)
+        {
+            usleep(total_microseconds);
+        }
+    }
+}
+
+int TimeComperator(clockid_t _clk_id, struct timespec *_ts1, struct timespec *_ts2)
+{
+    if (TOTAL_TIME(_ts1) < TOTAL_TIME(_ts2))
+    {
+        return 1;
+    }
+    else if (TOTAL_TIME(_ts1) > TOTAL_TIME(_ts2))
+    {
+        return -1;
+    }
+    else
     {
         return 0;
     }
-    return (size_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }

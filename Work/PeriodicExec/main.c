@@ -20,8 +20,12 @@ size_t GetMagicNum(PeriodicExecutor *_executor);
 
 int PrintA(void *_context)
 {
+    static int count = 0;
     printf("IN PRINTA\n");
-
+    ++count;
+    if(count == 5){
+        return 0;
+    }
     return 1;
 }
 int PrintB(void *_context)
@@ -34,10 +38,10 @@ int PrintB(void *_context)
 int main()
 {
 
-    PeriodicExecutor *pe = PeriodicExecutor_Create("pe1", CLOCK_MONOTONIC);
+    PeriodicExecutor *pe = PeriodicExecutor_Create("pe1", CLOCK_REALTIME);
 
-    PeriodicExecutor_Add(pe, PrintA, NULL, 100);
-    PeriodicExecutor_Add(pe, PrintB, NULL, 1000);
+    PeriodicExecutor_Add(pe, PrintA, NULL, 2000);
+    PeriodicExecutor_Add(pe, PrintB, NULL, 3000);
 
     PeriodicExecutor_Run(pe);
 
