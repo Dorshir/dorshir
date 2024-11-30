@@ -2,10 +2,9 @@
 #include "task.h"
 #include "calctime.h"
 
-#include <time.h>
-#include <stdio.h>  /* NULL */
+#include <time.h>   /* clockid_t, timespec */
 #include <limits.h> /* INT_MAX */
-#include <stdlib.h> /* malloc, free */
+#include <stdlib.h> /* malloc, free, size_t */
 
 #define MILLION 1000000
 
@@ -21,7 +20,6 @@ struct Task
 typedef enum Task_Result
 {
     TASK_SUCCESS,
-    TASK_ALLOCATION_ERROR,
     TASK_UNINITIALIZE_ERROR
 } TaskResult;
 
@@ -67,7 +65,7 @@ int Task_Execute(Task *_task)
 
     struct timespec curr = {0};
 
-    CalcTime(_task->m_clk_id,0, &curr);
+    CalcTime(_task->m_clk_id, 0, &curr);
 
     SleepIfNeeds(_task->m_clk_id, _task->m_t2e, &curr);
 
@@ -135,7 +133,29 @@ static TaskResult CreateInputCheck(TaskFunc _taskFunc, size_t _period_ms)
     return TASK_SUCCESS;
 }
 
+/* **************** * Getter Functions * **************** */
+
 struct timespec *GetT2E(Task *_task)
 {
     return _task->m_t2e;
+}
+
+TaskFunc GetFunc(Task *_task)
+{
+    return _task->m_func;
+}
+
+void *GetContext(Task *_task)
+{
+    return _task->m_context;
+}
+
+size_t GetPeriod(Task *_task)
+{
+    return _task->m_period;
+}
+
+clockid_t GetClockIDTask(Task *_task)
+{
+    return _task->m_clk_id;
 }

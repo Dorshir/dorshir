@@ -2,8 +2,8 @@
 #define _XOPEN_SOURCE 500
 
 #include "calctime.h"
-#include <time.h>
-#include <unistd.h>
+#include <time.h>   /* clockid_t, clock_gettime, timespec */
+#include <unistd.h> /* usleep */
 
 #define MILLIARD 1000000000
 #define TOTAL_TIME(ts) (ts->tv_sec * MILLIARD + ts->tv_nsec)
@@ -27,20 +27,20 @@ void SleepIfNeeds(clockid_t _clk_id, struct timespec *_taskTs, struct timespec *
 
     if (TimeComperator(_clk_id, _currTs, _taskTs) == 1)
     {
-        long seconds_diff = _taskTs->tv_sec - _currTs->tv_sec;
-        long nanoseconds_diff = _taskTs->tv_nsec - _currTs->tv_nsec;
+        long secDiff = _taskTs->tv_sec - _currTs->tv_sec;
+        long nanoDiff = _taskTs->tv_nsec - _currTs->tv_nsec;
 
-        if (nanoseconds_diff < 0)
+        if (nanoDiff < 0)
         {
-            nanoseconds_diff += 1000000000;
-            seconds_diff -= 1;
+            nanoDiff += 1000000000;
+            secDiff -= 1;
         }
 
-        long total_microseconds = seconds_diff * 1000000 + nanoseconds_diff / 1000;
+        long totalMicro = secDiff * 1000000 + nanoDiff / 1000;
 
-        if (total_microseconds > 0)
+        if (totalMicro > 0)
         {
-            usleep(total_microseconds);
+            usleep(totalMicro);
         }
     }
 }

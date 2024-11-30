@@ -11,14 +11,22 @@
 #include <time.h>
 #include <stdint.h>
 
-#define TRUE 1
 #define FALSE 0
+#define TRUE 1
+
+Vector *GetTasks(PeriodicExecutor *_executor);
+clockid_t GetClockIDPE(PeriodicExecutor *_executor);
+char *GetName(PeriodicExecutor *_executor);
+int GetPauseFlag(PeriodicExecutor *_executor);
+size_t GetMagicNum(PeriodicExecutor *_executor);
+void SetPauseFlag(PeriodicExecutor *_executor);
+
 
 /* Helper Functions */
-static int SampleTaskFunction(void *context);
+static int OneExecTaskFunction(void *context);
 static int InvalidTaskFunction(void *context);
 
-/* Test Function Prototypes */
+
 /* Create Tests */
 static void TestPeriodicExecutor_CreateValid();
 static void TestPeriodicExecutor_CreateNullName();
@@ -44,30 +52,25 @@ static void TestPeriodicExecutor_DestroyValid();
 static void TestPeriodicExecutor_DestroyNullExecutor();
 static void TestPeriodicExecutor_DestroyDoubleDestroy();
 
-/* Main Function */
 int main()
 {
-    /* Create Tests */
+
     TestPeriodicExecutor_CreateValid();
     TestPeriodicExecutor_CreateNullName();
 
-    /* Add Tests */
     TestPeriodicExecutor_AddValid();
     TestPeriodicExecutor_AddNullExecutor();
     TestPeriodicExecutor_AddNullTaskFunction();
     TestPeriodicExecutor_AddNullContext();
     TestPeriodicExecutor_AddZeroPeriod();
 
-    /* Run Tests */
     TestPeriodicExecutor_RunWithTasks();
     TestPeriodicExecutor_RunWithNoTasks();
     TestPeriodicExecutor_RunPause();
 
-    /* Pause Tests */
     TestPeriodicExecutor_PauseValid();
     TestPeriodicExecutor_PauseNullExecutor();
 
-    /* Destroy Tests */
     TestPeriodicExecutor_DestroyValid();
     TestPeriodicExecutor_DestroyNullExecutor();
     TestPeriodicExecutor_DestroyDoubleDestroy();
@@ -75,27 +78,32 @@ int main()
     return 0;
 }
 
-/* Helper Function Implementations */
-static int SampleTaskFunction(void *context)
+/* Helper Functions */
+static int InfExecTaskFunction(void *context)
 {
     char *message = (char *)context;
     printf("Executing Task: %s\n", message);
-    return 0; // Return 0 to indicate rescheduling
+    return 0;
 }
 
-static int InvalidTaskFunction(void *context)
+static int OneExecTaskFunction(void *context)
 {
-    return -1; // Return non-zero to indicate task completion
+    char *message = (char *)context;
+    printf("Executing Task: %s\n", message);
+    return 1;
 }
 
-/* Test Function Implementations */
+/* Test Functions */
 
 /* Create Tests */
 static void TestPeriodicExecutor_CreateValid()
 {
     printf("TestPeriodicExecutor_CreateValid: ");
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor1", CLOCK_MONOTONIC);
-    if (executor != NULL && executor->m_tasks != NULL && strcmp(executor->m_name, "Executor1") == 0 && executor->m_pauseFlag == FALSE)
+    if (executor != NULL &&
+        GetTasks(executor) != NULL &&
+        strcmp(GetName(executor), "Executor1") == 0 &&
+        GetPauseFlag(executor) == FALSE)
     {
         printf("PASS\n");
     }
@@ -127,8 +135,8 @@ static void TestPeriodicExecutor_AddValid()
     printf("TestPeriodicExecutor_AddValid: ");
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor2", CLOCK_MONOTONIC);
     char *msg = "Task1";
-    int result = PeriodicExecutor_Add(executor, SampleTaskFunction, msg, 1000);
-    if (result == TRUE && VectorSize(executor->m_tasks) == 1)
+    int result = PeriodicExecutor_Add(executor, OneExecTaskFunction, msg, 1000);
+    if (result == TRUE && VectorSize(GetTasks(executor)) == 1)
     {
         printf("PASS\n");
     }
@@ -143,7 +151,7 @@ static void TestPeriodicExecutor_AddNullExecutor()
 {
     printf("TestPeriodicExecutor_AddNullExecutor: ");
     char *msg = "Task2";
-    int result = PeriodicExecutor_Add(NULL, SampleTaskFunction, msg, 1000);
+    int result = PeriodicExecutor_Add(NULL, OneExecTaskFunction, msg, 1000);
     if (result == FALSE)
     {
         printf("PASS\n");
@@ -160,7 +168,7 @@ static void TestPeriodicExecutor_AddNullTaskFunction()
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor3", CLOCK_MONOTONIC);
     char *msg = "Task3";
     int result = PeriodicExecutor_Add(executor, NULL, msg, 1000);
-    if (result == FALSE && VectorSize(executor->m_tasks) == 0)
+    if (result == FALSE && VectorSize(GetTasks(executor)) == 0)
     {
         printf("PASS\n");
     }
@@ -175,8 +183,8 @@ static void TestPeriodicExecutor_AddNullContext()
 {
     printf("TestPeriodicExecutor_AddNullContext: ");
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor4", CLOCK_MONOTONIC);
-    int result = PeriodicExecutor_Add(executor, SampleTaskFunction, NULL, 1000);
-    if (result == FALSE && VectorSize(executor->m_tasks) == 0)
+    int result = PeriodicExecutor_Add(executor, OneExecTaskFunction, NULL, 1000);
+    if (result == TRUE && VectorSize(GetTasks(executor)) == 1)
     {
         printf("PASS\n");
     }
@@ -192,8 +200,8 @@ static void TestPeriodicExecutor_AddZeroPeriod()
     printf("TestPeriodicExecutor_AddZeroPeriod: ");
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor5", CLOCK_MONOTONIC);
     char *msg = "Task5";
-    int result = PeriodicExecutor_Add(executor, SampleTaskFunction, msg, 0);
-    if (result == FALSE && VectorSize(executor->m_tasks) == 0)
+    int result = PeriodicExecutor_Add(executor, OneExecTaskFunction, msg, 0);
+    if (result == FALSE && VectorSize(GetTasks(executor)) == 0)
     {
         printf("PASS\n");
     }
@@ -211,11 +219,11 @@ static void TestPeriodicExecutor_RunWithTasks()
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor6", CLOCK_MONOTONIC);
     char *msg1 = "Task6_1";
     char *msg2 = "Task6_2";
-    PeriodicExecutor_Add(executor, SampleTaskFunction, msg1, 500);  // 0.5 seconds
-    PeriodicExecutor_Add(executor, SampleTaskFunction, msg2, 1000); // 1 second
+    PeriodicExecutor_Add(executor, OneExecTaskFunction, msg1, 500); 
+    PeriodicExecutor_Add(executor, OneExecTaskFunction, msg2, 1000);
 
     size_t cycles = PeriodicExecutor_Run(executor);
-    if (cycles >= 2)
+    if (cycles == 2)
     {
         printf("PASS\n");
     }
@@ -247,11 +255,9 @@ static void TestPeriodicExecutor_RunPause()
     printf("TestPeriodicExecutor_RunPause: ");
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor8", CLOCK_MONOTONIC);
     char *msg = "Task8";
-    PeriodicExecutor_Add(executor, SampleTaskFunction, msg, 1000); // 1 second
+    PeriodicExecutor_Add(executor, InfExecTaskFunction, msg, 1000);
 
-    // Run in a separate process or thread is not feasible in this single-threaded context
-    // Therefore, simulate pause by setting the pause flag before running
-    executor->m_pauseFlag = TRUE;
+    SetPauseFlag(executor);
     size_t cycles = PeriodicExecutor_Run(executor);
     if (cycles == 0)
     {
@@ -264,22 +270,21 @@ static void TestPeriodicExecutor_RunPause()
     PeriodicExecutor_Destroy(executor);
 }
 
-/* Pause Tests */
 static void TestPeriodicExecutor_PauseValid()
 {
     printf("TestPeriodicExecutor_PauseValid: ");
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor9", CLOCK_MONOTONIC);
     char *msg = "Task9";
-    PeriodicExecutor_Add(executor, SampleTaskFunction, msg, 1000); // 1 second
+    PeriodicExecutor_Add(executor, OneExecTaskFunction, msg, 1000);
 
     size_t tasksBeforePause = PeriodicExecutor_Pause(executor);
-    if (tasksBeforePause == 1 && executor->m_pauseFlag == TRUE)
+    if (tasksBeforePause == 1 && GetPauseFlag(executor) == TRUE)
     {
         printf("PASS\n");
     }
     else
     {
-        printf("FAIL (Tasks Before Pause: %zu, PauseFlag: %d)\n", tasksBeforePause, executor->m_pauseFlag);
+        printf("FAIL (Tasks Before Pause: %zu, PauseFlag: %d)\n", tasksBeforePause, GetPauseFlag(executor));
     }
     PeriodicExecutor_Destroy(executor);
 }
@@ -298,14 +303,11 @@ static void TestPeriodicExecutor_PauseNullExecutor()
     }
 }
 
-/* Destroy Tests */
 static void TestPeriodicExecutor_DestroyValid()
 {
     printf("TestPeriodicExecutor_DestroyValid: ");
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor10", CLOCK_MONOTONIC);
     PeriodicExecutor_Destroy(executor);
-    // Since the executor is freed, we cannot directly check its fields
-    // Instead, ensure no crash occurs
     printf("PASS\n");
 }
 
@@ -321,8 +323,8 @@ static void TestPeriodicExecutor_DestroyDoubleDestroy()
     printf("TestPeriodicExecutor_DestroyDoubleDestroy: ");
     PeriodicExecutor *executor = PeriodicExecutor_Create("Executor11", CLOCK_MONOTONIC);
     PeriodicExecutor_Destroy(executor);
-    // Attempt to destroy again
     PeriodicExecutor_Destroy(executor);
-    // If no crash occurs, consider it a pass
     printf("PASS\n");
 }
+
+

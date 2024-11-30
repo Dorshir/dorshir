@@ -7,14 +7,20 @@
 #include <string.h>
 #include <time.h>
 #include <limits.h>
+
 #define TRUE 1
 #define FALSE 0
+#define MILLI2NANO(period) (period * 1000000)
 
-/* Helper Functions */
+TaskFunc GetFunc(Task *_task);
+void *GetContext(Task *_task);
+size_t GetPeriod(Task *_task);
+struct timespec *GetT2E(Task *_task);
+clockid_t GetClockIDTask(Task *_task);
+
+/* Helper Function */
 static int ValidTaskFunction(void *context);
-static int InvalidTaskFunction(void *context);
 
-/* Test Function Prototypes */
 /* Create Tests */
 static void TestTask_CreateValid();
 static void TestTask_CreateNullFunction();
@@ -33,17 +39,14 @@ static void TestTask_DestroyDoubleDestroy();
 /* Main Function */
 int main()
 {
-    /* Create Tests */
     TestTask_CreateValid();
     TestTask_CreateNullFunction();
     TestTask_CreateNullContext();
     TestTask_CreateZeroPeriod();
 
-    /* Execute Tests */
     TestTask_ExecuteValid();
     TestTask_ExecuteNullTask();
 
-    /* Destroy Tests */
     TestTask_DestroyValid();
     TestTask_DestroyNullTask();
     TestTask_DestroyDoubleDestroy();
@@ -51,21 +54,13 @@ int main()
     return 0;
 }
 
-/* Helper Function Implementations */
+/* Helper Function */
 static int ValidTaskFunction(void *context)
 {
     char *message = (char *)context;
     printf("Executing Valid Task: %s\n", message);
-    return 0; // Return 0 to indicate rescheduling
+    return 0;
 }
-
-static int InvalidTaskFunction(void *context)
-{
-    printf("Executing Invalid Task.\n");
-    return -1; // Return non-zero to indicate task completion
-}
-
-/* Test Function Implementations */
 
 /* Create Tests */
 static void TestTask_CreateValid()
@@ -73,7 +68,7 @@ static void TestTask_CreateValid()
     printf("TestTask_CreateValid: ");
     char *msg = "Task1";
     Task *task = Task_Create(ValidTaskFunction, msg, 1000, CLOCK_MONOTONIC);
-    if (task != NULL && task->m_func == ValidTaskFunction && strcmp((char *)task->m_context, msg) == 0 && task->m_period == 1000)
+    if (task != NULL && GetFunc(task) == ValidTaskFunction && strcmp((char *)GetContext(task), msg) == 0 && GetPeriod(task) == MILLI2NANO(1000))
     {
         printf("PASS\n");
     }
@@ -104,14 +99,14 @@ static void TestTask_CreateNullContext()
 {
     printf("TestTask_CreateNullContext: ");
     Task *task = Task_Create(ValidTaskFunction, NULL, 1000, CLOCK_MONOTONIC);
-    if (task == NULL)
+    if (task != NULL)
     {
         printf("PASS\n");
+        Task_Destroy(&task);
     }
     else
     {
         printf("FAIL\n");
-        Task_Destroy(&task);
     }
 }
 
@@ -192,7 +187,7 @@ static void TestTask_DestroyDoubleDestroy()
     char *msg = "Task6";
     Task *task = Task_Create(ValidTaskFunction, msg, 1000, CLOCK_MONOTONIC);
     Task_Destroy(&task);
-    Task_Destroy(&task); // Second destroy should safely do nothing
+    Task_Destroy(&task);
     if (task == NULL)
     {
         printf("PASS\n");

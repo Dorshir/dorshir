@@ -1,17 +1,11 @@
-TARGET = main.out
-
 CC = gcc
 CFLAGS = -g -pedantic -I../DynamicVector/ -I../Heap/
 LDFLAGS = -L../DS_LIB -lds -lm
-OBJS = main.o executor.o calctime.o task.o
+OBJS = executor.o calctime.o task.o
 
-$(TARGET): $(OBJS)
-	$(CC) -o $(TARGET) $(OBJS) $(LDFLAGS)
+all : $(OBJS)
 
 .PHONY: clean
-
-main.o: main.c executor.h calctime.h task.h
-	$(CC) $(CFLAGS) -c main.c
 
 executor.o: executor.c executor.h task.h
 	$(CC) $(CFLAGS) -c executor.c

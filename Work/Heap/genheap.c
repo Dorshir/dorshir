@@ -170,7 +170,7 @@ static void BubbleUp(Heap *_heap)
     while (curr > 0)
     {
         VectorGet(_heap->m_vec, FATHER(curr), &fatherData);
-        if (!_heap->_pfLess(currData, fatherData))
+        if (_heap->_pfLess(currData, fatherData) <= 0)
         {
             break;
         }

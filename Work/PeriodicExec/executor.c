@@ -2,9 +2,8 @@
 #include "dynamicVector.h"
 #include "genheap.h"
 #include "task.h"
-#include <stdlib.h> /* free, malloc */
-#include <stdio.h>  /* NULL */
-#include <time.h>   /* */
+#include <stdlib.h> /* size_t, free, malloc */
+#include <time.h>   /* clockid_t */
 #include <string.h> /* strcpy */
 #include <stdint.h> /* SIZE_MAX */
 
@@ -104,7 +103,7 @@ size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
     if (minHeap == NULL)
     {
         return executeCycles;
-    }   
+    }
 
     while (_executor->m_pauseFlag == FALSE)
     {
@@ -116,6 +115,7 @@ size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
 
         if (Task_Execute(extractedTask) == 0)
         {
+            SetTime2Exec(extractedTask, 0, NULL);
             if (HeapInsert(minHeap, extractedTask) != HEAP_SUCCESS)
             {
                 Task_Destroy(&extractedTask);
@@ -173,14 +173,14 @@ static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_
     return PE_SUCCESS;
 }
 
-/* GETTERS */
+/* **************** * Getters and Setters Functions * **************** */
 
 Vector *GetTasks(PeriodicExecutor *_executor)
 {
     return _executor->m_tasks;
 }
 
-clockid_t GetClockID(PeriodicExecutor *_executor)
+clockid_t GetClockIDPE(PeriodicExecutor *_executor)
 {
     return _executor->m_clk_id;
 }
@@ -198,4 +198,9 @@ int GetPauseFlag(PeriodicExecutor *_executor)
 size_t GetMagicNum(PeriodicExecutor *_executor)
 {
     return _executor->m_magic;
+}
+
+void SetPauseFlag(PeriodicExecutor *_executor)
+{
+    _executor->m_pauseFlag = !_executor->m_pauseFlag;
 }
