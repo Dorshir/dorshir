@@ -111,7 +111,7 @@ size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
         return executeCycles;
     }
 
-    while (_executor->m_pauseFlag == FALSE || HeapSize(minHeap) > 0)
+    while (_executor->m_pauseFlag == FALSE && HeapSize(minHeap) > 0)
     {
         Task *extractedTask = HeapExtract(minHeap);
         if (extractedTask == NULL) /* No Tasks To Execute */

@@ -139,12 +139,13 @@ PlayerResult ThrowCard(Player *_player, Card **_pValue, Card **_table, PrintCard
         }
 
         size_t validCardCount = GetValidCardsMachine(_player, _table, validCards, _rulesFunc, _rulesContext);
-
         if (validCardCount == 0)
         {
             free(validCards);
             return PLAYER_THROW_CARD_FAILED;
         }
+
+        validCards[validCardCount] = NULL;
 
         /* first card for now .. */
         Card *selectedCard = validCards[0];
@@ -304,11 +305,16 @@ static void BuildCardIndexArray(Player *_player, BSTreeItr *_cardItrArray)
 
         while (!BSTreeItrEquals(begin, end))
         {
+            if (index >= _player->m_numOfCards)
+            {
+                break;
+            }
             _cardItrArray[index++] = begin;
             begin = BSTreeItrNext(begin);
         }
     }
 }
+
 
 static size_t GetUserInput(size_t _numOfCards)
 {
@@ -375,6 +381,7 @@ static BSTreeItr ChooseCard(Player *_player, PrintCardFunc _printFunc)
     return cardToThrow;
 }
 
+
 static BSTreeItr GetValidCard(Player *_player, Card **_table, PrintCardFunc _printFunc, RulesFunction _rulesFunc, void *_rulesContext)
 {
     BSTreeItr cardItr;
@@ -418,9 +425,10 @@ static size_t GetValidCardsMachine(Player *_player, Card **_table, Card **validC
             begin = BSTreeItrNext(begin);
         }
     }
-    validCards[cardIndex+1] = NULL;
+    validCards[cardIndex] = NULL; 
     return cardIndex;
 }
+
 
 static BSTreeItr FindCardIterator(Player *_player, Card *selectedCard)
 {

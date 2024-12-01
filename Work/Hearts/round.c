@@ -72,24 +72,27 @@ static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCar
 static size_t UpdateScore(Round *_round, Card **_tableCards, RulesContext *_rulesContext);
 static RoundResult PlayTrick(Round *_round, Card **_tableCards, StrategyContext *_strategyContext, RulesContext *_rulesContext);
 static RoundResult StartRound(Round *_round, RoundNum _roundNum);
-size_t *IsThereAWinner(Round *_round, size_t *_numWinners);
 static void DestroyAlreadyGivenCards(Round *_round, size_t _lastPlayerIndex);
 static void DestroyTableCards(Card **_tableCards, size_t _length);
 static size_t WhoHasTwoClubs(Round *_round);
-int IsValidCard(Card *_card, Card **_table, void *_context);
 static void PrintCard(Card *_card);
 static RoundResult PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext);
 static size_t GetLoser(Round *_round, Card **_tableCards, size_t _openingPlayerNum, size_t *_score, RulesContext *_rulesContext);
 static size_t CountSuitCards(Card **_cards, Suit _suit);
 static void SortCardsDescending(Card **_cards, size_t _numCards);
-static size_t GetNumOfCards(Card **_cards);
+static size_t GetNumOfCards(Card **_cards, size_t _maxSize);
 static Card *GetLowestHigherCard(Card **_cards, size_t _numCards, Card *_refCard);
 static Card *GetHighestCardOfSuit(Card **_cards, size_t _numCards, Suit _suit);
 static Card *GetHighestCard(Card **_cards, size_t _numCards);
 static Card *GetLowestCard(Card **_cards, size_t _numCards);
 static Card *GetLowestCardOfSuit(Card **_cards, size_t _numCards, Suit _suit);
+static void DestroyCardsToPass(Card ****_cardsToPass, size_t _numOfPlayers);
+static RoundResult GetChosenCards(Round *_round, Card ***_cardsToPass, Card **_tableCards, StrategyContext *_strategyContext);
+static RoundResult StatusConverter(PlayerResult _status);
 Card *GetOptCard(Card **_cards, Card **_table, void *_context);
 Card *GetOptCardPass(Card **_cards, Card **_table, void *_context);
+size_t *IsThereAWinner(Round *_round, size_t *_numWinners);
+int IsValidCard(Card *_card, Card **_table, void *_context);
 
 /* API Functions */
 
@@ -287,10 +290,10 @@ static RoundResult InitCardsToPass(Card ***_cardsToPass, size_t _numOfPlayers)
 {
     for (size_t playerNum = 0; playerNum < _numOfPlayers; playerNum++)
     {
-        _cardsToPass[playerNum] = malloc(NUM_OF_CARDS_PASS * sizeof(Card *));
+        _cardsToPass[playerNum] = calloc(NUM_OF_CARDS_PASS + 1, sizeof(Card *));
         if (_cardsToPass[playerNum] == NULL)
         {
-            /* free previouse  */
+            /* Free previous allocations */
             for (size_t i = 0; i < playerNum; i++)
             {
                 free(_cardsToPass[i]);
@@ -306,6 +309,7 @@ static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCar
 {
     int relativeNext;
     RoundResult status;
+
     if (_roundNum == FOURTH)
     {
         return ROUND_SUCCESS;
@@ -321,12 +325,14 @@ static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCar
 
     if (InitCardsToPass(cardsToPass, _round->m_numOfPlayers) != ROUND_SUCCESS)
     {
+        free(cardsToPass);
         return ROUND_ALLOCATION_ERROR;
     }
 
     status = GetChosenCards(_round, cardsToPass, _tableCards, _strategyContext);
     if (status != ROUND_SUCCESS)
     {
+        DestroyCardsToPass(&cardsToPass, _round->m_numOfPlayers);
         return status;
     }
 
@@ -335,6 +341,7 @@ static RoundResult PassCards(Round *_round, RoundNum _roundNum, Card **_tableCar
     status = PassToAnotherPlayer(_round, cardsToPass, relativeNext);
     if (status != ROUND_SUCCESS)
     {
+        DestroyCardsToPass(&cardsToPass, _round->m_numOfPlayers);
         return status;
     }
 
@@ -365,11 +372,21 @@ static RoundResult GetChosenCards(Round *_round, Card ***_cardsToPass, Card **_t
 
 static void DestroyCardsToPass(Card ****_cardsToPass, size_t _numOfPlayers)
 {
+    if (_cardsToPass == NULL || *_cardsToPass == NULL)
+    {
+        return;
+    }
+
+    Card ***cardsToPass = *_cardsToPass;
+
     for (size_t playerNum = 0; playerNum < _numOfPlayers; playerNum++)
     {
-        free(*(_cardsToPass[playerNum]));
+        free(cardsToPass[playerNum]);
+        cardsToPass[playerNum] = NULL;
     }
-    free(*_cardsToPass);
+
+    free(cardsToPass);
+    *_cardsToPass = NULL;
 }
 
 static RoundResult PassToAnotherPlayer(Round *_round, Card ***_cardsToPass, size_t _relativeNext)
@@ -638,7 +655,7 @@ static RoundResult StartRound(Round *_round, RoundNum _roundNum)
 static size_t CountSuitCards(Card **_cards, Suit _suit)
 {
     size_t count = 0;
-    size_t _numCards = GetNumOfCards(_cards);
+    size_t _numCards = GetNumOfCards(_cards, NUM_OF_CARDS_EACH_PLAYER);
     for (size_t i = 0; i < _numCards; i++)
     {
         if (_cards[i]->m_suit == _suit)
@@ -664,18 +681,18 @@ static void SortCardsDescending(Card **_cards, size_t _numCards)
     }
 }
 
-static size_t GetNumOfCards(Card **_cards)
+static size_t GetNumOfCards(Card **_cards, size_t _maxSize)
 {
     size_t count = 0;
     if (_cards == NULL)
     {
         return 0;
     }
-    while (_cards[count] != NULL)
+    while (count < _maxSize && _cards[count] != NULL)
     {
         count++;
     }
-    return count - 1;
+    return count;
 }
 
 static Card *GetLowestHigherCard(Card **_cards, size_t _numCards, Card *_refCard)
@@ -809,7 +826,7 @@ Card *GetOptCard(Card **_cards, Card **_table, void *_context)
 {
 
     RulesContext *rules = (RulesContext *)_context;
-    size_t _numCards = GetNumOfCards(_cards);
+    size_t _numCards = GetNumOfCards(_cards, NUM_OF_CARDS_EACH_PLAYER);
 
     /* 1. If leading the trick */
     if (IS_EMPTY_TABLE(rules))
@@ -878,11 +895,15 @@ Card *GetOptCardPass(Card **_cards, Card **_table, void *_context)
         return NULL;
     }
 
-    size_t _numCards = GetNumOfCards(_cards);
+    size_t _numCards = GetNumOfCards(_cards, NUM_OF_CARDS_EACH_PLAYER);
 
     /* 1. Pass the Queen of Spades if present */
     for (size_t i = 0; i < _numCards; i++)
     {
+        if (_cards[i] == NULL)
+        {
+            break;
+        }
         if (IS_QUEEN_OF_SPADES(_cards[i]))
         {
             return _cards[i];
