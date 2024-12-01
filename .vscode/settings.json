@@ -22,6 +22,7 @@
         "typeinfo": "c",
         "bitwise.h": "c",
         "task.h": "c",
-        "genvec.h": "c"
+        "genvec.h": "c",
+        "types.h": "c"
     }
 }

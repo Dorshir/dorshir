@@ -927,7 +927,7 @@ Card *GetOptCardPass(Card **_cards, Card **_table, void *_context)
         }
     }
 
-    /* 3. Pass highest cards if still need to pass more */
+    /* 3. Pass highest cards if still need to pass cards */
 
     /* Sort remaining cards in descending order */
     SortCardsDescending(_cards, _numCards);
