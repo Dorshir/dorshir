@@ -72,6 +72,19 @@ int Task_Execute(Task *_task)
     return _task->m_func(_task->m_context);
 }
 
+int SetTime2Exec(void *_element, size_t _index, void *_context)
+{
+    if (_element == NULL)
+    {
+        return 0;
+    }
+    Task *task = (Task *)_element;
+
+    CalcTime(task->m_clk_id, task->m_period, task->m_t2e);
+
+    return 1;
+}
+
 int TaskComparator(const void *_a, const void *_b)
 {
     if (_a == NULL || _b == NULL)
@@ -96,19 +109,6 @@ int TaskComparator(const void *_a, const void *_b)
     {
         return 0;
     }
-}
-
-int SetTime2Exec(void *_element, size_t _index, void *_context)
-{
-    if (_element == NULL)
-    {
-        return 0;
-    }
-    Task *task = (Task *)_element;
-
-    CalcTime(task->m_clk_id, task->m_period, task->m_t2e);
-
-    return 1;
 }
 
 void Task_Destroy(Task **_task)

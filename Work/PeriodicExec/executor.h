@@ -11,7 +11,8 @@ typedef enum PeriodicExecutorResult
     PE_SUCCESS,          
     PE_ALLOCATION_ERROR,   
     PE_UNINITIALIZED_ERROR,
-    PE_PERIOD_ERROR         
+    PE_PERIOD_ERROR,
+    PE_APPEND_ERROR     
 } PeriodicExecutorResult;
 
 typedef struct PeriodicExecutor PeriodicExecutor;
@@ -36,8 +37,11 @@ PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id);
  * @param[in] _period_ms - Period of the task in milliseconds, must be greater than 0.
  *
  * @return int - Result of the operation.
- * @retval 1 on success.
- * @retval 0 on failure (e.g., invalid parameters, allocation failure).
+ * @retval PE_SUCCESS on success.
+ * @retval PE_ALLOCATION_ERROR on allocation failure.
+ * @retval PE_APPEND_ERROR on add task failure.
+ * @retval PE_UNINITIALIZED_ERROR on invalid pointers.
+ * @retval PE_PERIOD_ERROR for invalid _period_ms.
  */
 int PeriodicExecutor_Add(PeriodicExecutor *_executor, int (*_taskFunction)(void *), void *_context, size_t _period_ms);
 

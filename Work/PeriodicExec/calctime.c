@@ -6,6 +6,7 @@
 #include <unistd.h> /* usleep */
 
 #define MILLIARD 1000000000
+#define MILLION 1000000
 #define TOTAL_TIME(ts) (ts->tv_sec * MILLIARD + ts->tv_nsec)
 
 void CalcTime(clockid_t _clk_id, size_t _period, struct timespec *_ts)
@@ -32,11 +33,11 @@ void SleepIfNeeds(clockid_t _clk_id, struct timespec *_taskTs, struct timespec *
 
         if (nanoDiff < 0)
         {
-            nanoDiff += 1000000000;
+            nanoDiff += MILLIARD;
             secDiff -= 1;
         }
 
-        long totalMicro = secDiff * 1000000 + nanoDiff / 1000;
+        long totalMicro = secDiff * MILLION + nanoDiff / 1000;
 
         if (totalMicro > 0)
         {

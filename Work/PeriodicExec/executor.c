@@ -7,6 +7,9 @@
 #include <string.h> /* strcpy */
 #include <stdint.h> /* SIZE_MAX */
 
+#define TASKS_SIZE_INIT 5
+#define BLOCKSIZE_INIT 3
+
 size_t GetT2E(Task *_task);
 
 typedef enum Bool
@@ -25,6 +28,7 @@ struct PeriodicExecutor
 };
 
 static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_taskFunction)(void *), size_t _period_ms);
+static void TasksDestroy(void *_task);
 
 /* **************** * API Functions * **************** */
 
@@ -59,8 +63,7 @@ PeriodicExecutor *PeriodicExecutor_Create(const char *_name, clockid_t _clk_id)
 
     newPe->m_pauseFlag = FALSE;
 
-    newPe->m_tasks = VectorCreate(5, 3);
-
+    newPe->m_tasks = VectorCreate(TASKS_SIZE_INIT, BLOCKSIZE_INIT);
     if (newPe->m_tasks == NULL)
     {
         free(newPe->m_name);
@@ -76,28 +79,31 @@ int PeriodicExecutor_Add(PeriodicExecutor *_executor, int (*_taskFunction)(void 
     PeriodicExecutorResult res = AddInputCheck(_executor, _taskFunction, _period_ms);
     if (res != PE_SUCCESS)
     {
-        return FALSE;
+        return res;
     }
 
     Task *newTask = Task_Create(_taskFunction, _context, _period_ms, _executor->m_clk_id);
     if (newTask == NULL)
     {
-        return FALSE;
+        return PE_ALLOCATION_ERROR;
     }
 
     if (VectorAppend(_executor->m_tasks, newTask) != VECTOR_SUCCESS)
     {
-        return FALSE;
+        Task_Destroy(&newTask);
+        return PE_APPEND_ERROR;
     }
-
-    return TRUE;
+    return PE_SUCCESS;
 }
 
 size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
 {
     size_t executeCycles = 0;
 
-    VectorForEach(_executor->m_tasks, SetTime2Exec, NULL);
+    if (VectorForEach(_executor->m_tasks, SetTime2Exec, NULL) != VectorSize(_executor->m_tasks))
+    {
+        return executeCycles;
+    }
 
     Heap *minHeap = HeapBuild(_executor->m_tasks, TaskComparator);
     if (minHeap == NULL)
@@ -105,10 +111,10 @@ size_t PeriodicExecutor_Run(PeriodicExecutor *_executor)
         return executeCycles;
     }
 
-    while (_executor->m_pauseFlag == FALSE)
+    while (_executor->m_pauseFlag == FALSE || HeapSize(minHeap) > 0)
     {
         Task *extractedTask = HeapExtract(minHeap);
-        if (extractedTask == NULL)
+        if (extractedTask == NULL) /* No Tasks To Execute */
         {
             break;
         }
@@ -152,7 +158,7 @@ void PeriodicExecutor_Destroy(PeriodicExecutor *_executor)
         return;
     }
 
-    VectorDestroy(&_executor->m_tasks, free);
+    VectorDestroy(&_executor->m_tasks, TasksDestroy);
     free(_executor->m_name);
     _executor->m_magic = 0;
     free(_executor);
@@ -162,15 +168,21 @@ void PeriodicExecutor_Destroy(PeriodicExecutor *_executor)
 
 static PeriodicExecutorResult AddInputCheck(PeriodicExecutor *_executor, int (*_taskFunction)(void *), size_t _period_ms)
 {
+    PeriodicExecutorResult res = PE_SUCCESS;
     if (_executor == NULL || _taskFunction == NULL)
     {
-        return PE_UNINITIALIZED_ERROR;
+        res = PE_UNINITIALIZED_ERROR;
     }
     else if (_period_ms == 0)
     {
-        return PE_PERIOD_ERROR;
+        res = PE_PERIOD_ERROR;
     }
-    return PE_SUCCESS;
+    return res;
+}
+
+static void TasksDestroy(void *_task)
+{
+    Task_Destroy(&_task);
 }
 
 /* **************** * Getters and Setters Functions * **************** */
