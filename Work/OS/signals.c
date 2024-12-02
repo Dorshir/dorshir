@@ -4,6 +4,7 @@
 #include <stdio.h>  /* printf, fflush */
 #include <unistd.h> /* sleep */
 #include <string.h> /* strncpy */
+
 #define MAX_SIZE_ACTION 30
 
 void func1()
@@ -47,7 +48,7 @@ void signalPros()
     }
 }
 
-void sigctionPros()
+void sigactionPros()
 {
     struct sigaction sig = {0};
     sig.sa_handler = func2;
@@ -80,7 +81,7 @@ int main(int argc, char *argv[])
     }
     else if (strcmp(action, "sigaction") == 0)
     {
-        sigctionPros();
+        sigactionPros();
     }
     else
     {
