@@ -1,12 +1,10 @@
-# Targets
 TARGETS = tcpclient.out tcpserver.out
 
-# Compiler and Flags
 CC = gcc
 CFLAGS = -g -pedantic -I../../DoubleLinkedList/
 LDFLAGS = -L../../DS_LIB -lds -lm
 
-# Build Rules
+
 .PHONY: all clean
 
 all: $(TARGETS)
