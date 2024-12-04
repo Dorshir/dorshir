@@ -23,6 +23,8 @@
         "bitwise.h": "c",
         "task.h": "c",
         "genvec.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "socket.h": "c",
+        "cmath": "c"
     }
 }
