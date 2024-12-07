@@ -1,4 +1,4 @@
-TARGETS = tcpclient.out tcpserver.out
+TARGETS = tcpClient.out tcpServer.out tcpMultiClient.out
 
 CC = gcc
 CFLAGS = -g -pedantic -I../../DoubleLinkedList/
@@ -9,11 +9,14 @@ LDFLAGS = -L../../DS_LIB -lds -lm
 
 all: $(TARGETS)
 
-tcpclient.out: tcpclient.c
-	$(CC) $(CFLAGS) tcpclient.c -o tcpclient.out ../../DS_LIB/new_gen_dlist.o $(LDFLAGS)
+tcpClient.out: tcpClient.c
+	$(CC) $(CFLAGS) tcpClient.c -o tcpClient.out
 
-tcpserver.out: tcpserver.c
-	$(CC) $(CFLAGS) tcpserver.c -o tcpserver.out ../../DS_LIB/new_gen_dlist.o $(LDFLAGS)
+tcpServer.out: tcpServer.c
+	$(CC) $(CFLAGS) tcpServer.c -o tcpServer.out ../../DS_LIB/new_gen_dlist.o $(LDFLAGS)
+
+tcpMultiClient.out: tcpMultiClient.c
+	$(CC) $(CFLAGS) tcpMultiClient.c -o tcpMultiClient.out
 
 clean:
 	rm -f $(TARGETS)
