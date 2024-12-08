@@ -1,7 +1,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <stdio.h> /* sprintf, printf */
+#include <stdio.h>        /* sprintf, printf */
 #include <unistd.h>
 #include <stdlib.h>       /* malloc, free */
 #include <fcntl.h>        /* fcntl */
