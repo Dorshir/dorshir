@@ -84,7 +84,7 @@ ListItr ListPushHead(List *_list, void *_item)
         return NULL;
     }
     _newNode->m_data = _item;
-
+    
     return InsertByRefPoint(_list->m_head.m_next, _newNode);
 }
 
@@ -237,6 +237,7 @@ void *ListItrRemove(ListItr _itr)
     else
     {
         popped = ((Node *)_itr)->m_data;
+        ((Node *)_itr)->m_next->m_prev = ((Node *)_itr)->m_prev;
         ((Node *)_itr)->m_prev->m_next = ((Node *)_itr)->m_next;
     }
     return popped;

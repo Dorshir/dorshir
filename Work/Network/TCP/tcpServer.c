@@ -1,12 +1,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <stdio.h>
+#include <stdio.h> /* sprintf, printf */
 #include <unistd.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
+#include <stdlib.h>       /* malloc, free */
+#include <fcntl.h>        /* fcntl */
+#include <errno.h>        /* errno */
+#include <string.h>       /* strlen */
+#include <sys/resource.h> /* getrlimit */
 
 #include "new_gen_dlist.h"
 
@@ -21,29 +22,40 @@ static int RecFromClient(void *_fd, void *_dummy);
 static void DestroyClient(void *_fd);
 static int SendToClient(int _clientFd);
 static int SetSockNonBlocking(int *_sockFd);
+static void CloseConnectedClient(int _sockFd, int *_fdCount);
 
-int InitServer(int *_sockFd, List **_activeClients)
+int InitServer(int *_sockFd, List **_activeClients, int *_fdCount, int *_fdCountTreshold)
 {
     struct sockaddr_in serverAddr = {0};
     int optval = 1;
+    struct rlimit limit;
 
-    if (_sockFd == NULL)
+    if (_sockFd == NULL || _activeClients == NULL || _fdCount == NULL || _fdCountTreshold == NULL)
     {
         return -1;
+    }
+
+    if (getrlimit(RLIMIT_NOFILE, &limit) == 0)
+    {
+        *_fdCountTreshold = limit.rlim_cur - 3;
+    }
+    else
+    {
+        return -2;
     }
 
     *_sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (*_sockFd < 0)
     {
         perror("socket failed");
-        return -2;
+        return -3;
     }
 
     if (setsockopt(*_sockFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0)
     {
         perror("setsockopt failed");
         close(*_sockFd);
-        return -3;
+        return -4;
     }
 
     serverAddr.sin_addr.s_addr = INADDR_ANY;
@@ -54,37 +66,44 @@ int InitServer(int *_sockFd, List **_activeClients)
     {
         perror("bind failed");
         close(*_sockFd);
-        return -4;
+        return -5;
     }
 
     if (listen(*_sockFd, CONN_WAIT_QUEUE_SIZE) < 0)
     {
         perror("listen failed");
         close(*_sockFd);
-        return -5;
+        return -6;
     }
 
     if (SetSockNonBlocking(_sockFd) < 0)
     {
         close(*_sockFd);
-        return -6;
+        return -7;
     }
 
     *_activeClients = ListCreate();
     if (*_activeClients == NULL)
     {
         close(*_sockFd);
-        return -7;
+        return -8;
     }
+
+    *_fdCount = 4;
 
     return 1;
 }
 
-void CheckForNewClient(int _sockFd, List *_activeClients)
+void CheckForNewClient(int _sockFd, List *_activeClients, int *_fdCount, int _fdCountTreshold)
 {
     struct sockaddr_in clientAddr;
     socklen_t addrLength = sizeof(clientAddr);
     int flags, *connFd, tempFd;
+
+    if (_activeClients == NULL || _fdCount == NULL)
+    {
+        return;
+    }
 
     tempFd = accept(_sockFd, (struct sockaddr *)&clientAddr, &addrLength);
     if (tempFd < 0)
@@ -96,10 +115,19 @@ void CheckForNewClient(int _sockFd, List *_activeClients)
         return;
     }
 
+    if (*_fdCount == _fdCountTreshold)
+    {
+        printf("Reached fd count treshold. Closing the new connection.\n");
+        close(tempFd);
+        return;
+    }
+
+    ++(*_fdCount);
+
     connFd = malloc(sizeof(int));
     if (connFd == NULL)
     {
-        close(tempFd);
+        CloseConnectedClient(tempFd, _fdCount);
         return;
     }
 
@@ -107,19 +135,20 @@ void CheckForNewClient(int _sockFd, List *_activeClients)
 
     if (SetSockNonBlocking(connFd) < 0)
     {
-        close(*connFd);
+        CloseConnectedClient(*connFd, _fdCount);
         return;
     }
 
     if (ListPushTail(_activeClients, connFd) == NULL)
     {
+        CloseConnectedClient(*connFd, _fdCount);
         free(connFd);
     }
 }
 
-void CheckForEvents(List *_activeClients)
+void CheckForEvents(List *_activeClients, int *_fdCount)
 {
-    if (_activeClients == NULL)
+    if (_activeClients == NULL || _fdCount == NULL)
     {
         return;
     }
@@ -136,6 +165,7 @@ void CheckForEvents(List *_activeClients)
         if (itr != end)
         {
             int *fd = ListItrRemove(itr);
+            CloseConnectedClient(*fd, _fdCount);
             free(fd);
         }
     }
@@ -143,7 +173,7 @@ void CheckForEvents(List *_activeClients)
 
 void DestroyServer(int _sockFd, List **_activeClients)
 {
-    if (*_activeClients == NULL)
+    if (_activeClients == NULL || *_activeClients == NULL)
     {
         return;
     }
@@ -153,10 +183,10 @@ void DestroyServer(int _sockFd, List **_activeClients)
 
 int main()
 {
-    int sockFd, status;
+    int sockFd, status, fdCount = 0, fdCountTreshold;
     List *activeClients;
 
-    status = InitServer(&sockFd, &activeClients);
+    status = InitServer(&sockFd, &activeClients, &fdCount, &fdCountTreshold);
     if (status < 0)
     {
         return status;
@@ -164,13 +194,19 @@ int main()
 
     while (TRUE)
     {
-        CheckForNewClient(sockFd, activeClients);
-        CheckForEvents(activeClients);
+        CheckForNewClient(sockFd, activeClients, &fdCount, fdCountTreshold);
+        CheckForEvents(activeClients, &fdCount);
     }
 
     DestroyServer(sockFd, &activeClients);
 
     return 0;
+}
+
+static void CloseConnectedClient(int _sockFd, int *_fdCount)
+{
+    close(_sockFd);
+    --(*_fdCount);
 }
 
 static int SetSockNonBlocking(int *_sockFd)
@@ -186,11 +222,6 @@ static int SetSockNonBlocking(int *_sockFd)
         perror("error at fcntl. F_SETFL.");
         return -1;
     }
-    if (fcntl(*_sockFd, F_SETFL, O_NONBLOCK) < 0)
-    {
-        perror("fcntl failed");
-        return -1;
-    }
 
     return 1;
 }
@@ -203,7 +234,6 @@ static int RecFromClient(void *_fd, void *_dummy)
     int readBytes = recv(clientFd, buffer, BUFFER_SIZE, 0);
     if (readBytes == 0)
     {
-        close(clientFd);
         return 0;
     }
     else if (readBytes < 0)
@@ -214,7 +244,6 @@ static int RecFromClient(void *_fd, void *_dummy)
         }
         else
         {
-            close(clientFd);
             return 0;
         }
     }
@@ -233,7 +262,6 @@ static int SendToClient(int _clientFd)
     if (sentBytes == 0)
     {
         perror("send failed");
-        close(_clientFd);
         return 0;
     }
     else if (sentBytes < 0)
@@ -241,7 +269,6 @@ static int SendToClient(int _clientFd)
         if (errno != EAGAIN && errno != EWOULDBLOCK)
         {
             perror("send failed");
-            close(_clientFd);
             return 0;
         }
     }
