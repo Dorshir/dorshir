@@ -25,6 +25,7 @@
         "genvec.h": "c",
         "types.h": "c",
         "socket.h": "c",
-        "cmath": "c"
+        "cmath": "c",
+        "unistd.h": "c"
     }
 }
