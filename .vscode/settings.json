@@ -26,6 +26,7 @@
         "types.h": "c",
         "socket.h": "c",
         "cmath": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "string.h": "c"
     }
 }

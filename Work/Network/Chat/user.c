@@ -1,5 +1,6 @@
 #include "user.h"
 #include <string.h> /* strlen, strncpy */
+#include <stdlib.h> /* malloc, free */
 
 struct User
 {
@@ -62,4 +63,17 @@ void UserDelete(User **_user)
     free(*_user);
 
     *_user = NULL;
+}
+
+UserResult PasswordCheck(User *_first, User *_second)
+{
+    return (strcmp(_first->m_password, _second->m_password) == 0);
+}
+
+int UserNameComperator(void *_first, void *_second)
+{
+    User *firstUser = (User *)_first;
+    User *secondUser = (User *)_second;
+
+    return (strcmp(firstUser->m_userName, secondUser->m_userName) == 0);
 }
