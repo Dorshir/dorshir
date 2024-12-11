@@ -5,13 +5,6 @@
 
 typedef struct ClientNet ClientNet;
 
-typedef enum ClientNet_Result
-{
-    CLIENTNET_SUCCESS = 0,
-    CLIENTNET_SEND_ERROR,
-    CLIENTNET_ALLOCATION_ERROR
-} ClientNetResult;
-
 
 ClientNet *ClientNet_Create(char *_serverAddr, int _port);
 

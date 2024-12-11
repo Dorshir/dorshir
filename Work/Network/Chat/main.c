@@ -1,8 +1,19 @@
-#include "clientnet.h"
-
+#include "server_net.h"
+#include "serverApp.h"
+ #include <stdio.h>
 int main()
 {
+    int port = 8888;
+    ServerNet *server = ServerNetCreate(port, ServerAppHandler, NULL);
+    if (!server)
+    {
+        printf("Failed to create server\n");
+        return 1;
+    }
 
-    ClientNet* clientnet = ClientNet_Create("127.0.0.1", 5588);
+    ServerNetRun(server);
+    ServerNetDestroy(&server);
+
     return 0;
 }
+

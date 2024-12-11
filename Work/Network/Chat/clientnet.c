@@ -69,24 +69,22 @@ int ClientNet_Send(ClientNet *_clientNet, char *_message, size_t _length)
     return sentBytes;
 }
 
-int ClientNet_Receive(ClientNet *_clientNet, char *_buffer, size_t _bufferSize)
+int ClientNet_Receive(ClientNet* clientNet, char* buffer, size_t bufferSize)
 {
-    int readBytes;
-
-    if (_clientNet == NULL || _buffer == NULL || _bufferSize == 0)
+    if (clientNet == NULL || buffer == NULL || bufferSize == 0)
     {
         return -1;
     }
 
-    readBytes = recv(_clientNet->m_sockFd, _buffer, _bufferSize, 0);
-    if (readBytes <= 0)
+    ssize_t bytesRead = recv(clientNet->m_sockFd, buffer, bufferSize - 1, 0);
+    if (bytesRead <= 0)
     {
-        perror("ClientNet_Receive: recv");
-        ClientNet_Destroy(&_clientNet);
-        return -2;
+        perror("ClientNet_Receive: recv failed");
+        return -1;
     }
 
-    return readBytes;
+    buffer[bytesRead] = '\0';  
+    return bytesRead;
 }
 
 void ClientNet_Destroy(ClientNet **_clientnet)
@@ -102,13 +100,4 @@ void ClientNet_Destroy(ClientNet **_clientnet)
     }
     free(*_clientnet);
     *_clientnet = NULL;
-}
-
-
-
-int main()
-{
-
-    ClientNet* clientnet = ClientNet_Create("127.0.0.1", 5588);
-    return 0;
 }
