@@ -11,6 +11,10 @@ typedef enum UserManager_Result
     USER_MANAGER_UNINITIALIZED_ERROR,
 } UserManagerResult;
 
+UserManager* UserCreate();
+
+void UserDelete(UserManager ** _userManager);
+
 
 
 #endif /* __USER_MANAGER_H__ */
