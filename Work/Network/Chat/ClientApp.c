@@ -484,8 +484,8 @@ static void JoinChat(char* _chatIp, GroupChat* _groupChat)
 {
     char strRec[MAX_MSG_SIZE];
     char strSend[MAX_MSG_SIZE];
-    sprintf(strRec ,"xterm -hold -e './receive_app.out %s %d' &",_chatIp,PORT);
-    sprintf(strSend ,"xterm -hold -e './send_app.out %s %d' &",_chatIp,PORT);
+    sprintf(strRec ,"xterm -hold -e './receive_app.out %s %d %s' &",_chatIp,PORT,QUEUE2);
+    sprintf(strSend ,"xterm -hold -e './send_app.out %s %d %s' &",_chatIp,PORT,QUEUE1);
     system(strRec);
     system(strSend);
     GetPid(_groupChat);
