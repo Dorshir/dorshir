@@ -8,7 +8,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/select.h>
-
+#include <signal.h>
+#include "limits.h"
 #define MAX_CLIENTS 100
 
 
@@ -20,12 +21,17 @@ struct ServerNet
     int m_clientSockets[MAX_CLIENTS];
 };
 
+static volatile int g_keepRunning = 1;
+static int clientCounter = 1;  
+static int clientMap[MAX_CLIENTS] = {0}; 
+
 /* Static Function Prototypes */
 static int SetNonBlocking(int socket);
 static void HandleClientMessage(ServerNet *server, int clientSocket);
 static void CloseClientSocket(ServerNet *server, int clientIndex);
 static void AddClientSocket(ServerNet *server, int clientSocket);
 static void RemoveClientSocket(ServerNet *server, int clientSocket);
+static void SignalHandler(int signum);
 
 ServerNet* ServerNetCreate(int port, ClientHandler handler, void *context)
 {
@@ -74,9 +80,16 @@ ServerNet* ServerNetCreate(int port, ClientHandler handler, void *context)
         return NULL;
     }
 
+    int optval = 1;
+    if (setsockopt(server->m_serverSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0)
+    {
+        perror("setsockopt");
+        close(server->m_serverSocket);
+        free(server);
+        return NULL;
+    }
     server->m_handler = handler;
     server->m_context = context;
-
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
         server->m_clientSockets[i] = -1; 
@@ -93,16 +106,18 @@ void ServerNetRun(ServerNet *server)
     {
         return;
     }
-
+    struct sigaction sa = {0};
+    sa.sa_handler = SignalHandler;
+    sigaction(SIGINT, &sa, NULL);
     printf("Server running...\n");
-
     fd_set readFds;
-    int maxSd = server->m_serverSocket;
-
-    while (1)
+    int maxSd;
+    while (g_keepRunning)
     {
         FD_ZERO(&readFds);
         FD_SET(server->m_serverSocket, &readFds);
+        maxSd = server->m_serverSocket;
+
         for (int i = 0; i < MAX_CLIENTS; ++i)
         {
             if (server->m_clientSockets[i] >= 0)
@@ -120,16 +135,18 @@ void ServerNetRun(ServerNet *server)
             perror("Select error");
             break;
         }
+        if (activity == 0)
+        {
+            continue;
+        }
+
         if (FD_ISSET(server->m_serverSocket, &readFds))
         {
             int newSocket = accept(server->m_serverSocket, NULL, NULL);
             if (newSocket < 0)
             {
-                perror("Accept error");
                 continue;
             }
-
-            printf("New client connected: %d\n", newSocket);
             AddClientSocket(server, newSocket);
         }
         for (int i = 0; i < MAX_CLIENTS; ++i)
@@ -182,7 +199,7 @@ void ServerNetDestroy(ServerNet **server)
     free(*server);
     *server = NULL;
 
-    printf("Server destroyed.\n");
+    printf("\nReceived SIGINT (Ctrl+C). Shutting down server...\n");
 }
 
 /* Static Helper Functions */
@@ -209,22 +226,27 @@ static void HandleClientMessage(ServerNet *server, int clientSocket)
 {
     char buffer[BUFFER_SIZE];
     ssize_t bytesRead = recv(clientSocket, buffer, BUFFER_SIZE - 1, 0);
-
     if (bytesRead <= 0)
     {
         if (bytesRead < 0)
         {
             perror("HandleClientMessage: Failed to read from client");
         }
-
-        printf("Client disconnected: %d\n", clientSocket);
+        int clientNum = 0;
+        for (int i = 0; i < MAX_CLIENTS; i++) 
+        {
+            if (server->m_clientSockets[i] == clientSocket) 
+            {
+                clientNum = clientMap[i];
+                break;
+            }
+        }
+        printf("Client #%d disconnected (FD: %d)\n", clientNum, clientSocket);
         RemoveClientSocket(server, clientSocket);
         return;
     }
-
     buffer[bytesRead] = '\0';
     ProtocolTag tag = GetTag(buffer);
-
     if (tag == PROTOCOL_INVALID_TAG)
     {
         printf("Invalid protocol tag received.\n");
@@ -253,10 +275,11 @@ static void AddClientSocket(ServerNet *server, int clientSocket)
         if (server->m_clientSockets[i] == -1)
         {
             server->m_clientSockets[i] = clientSocket;
+            clientMap[i] = clientCounter;
+            printf("New client #%d connected (FD: %d)\n", clientCounter++, clientSocket);
             return;
         }
     }
-
     printf("Too many clients connected. Closing new connection: %d\n", clientSocket);
     close(clientSocket);
 }
@@ -273,3 +296,10 @@ static void RemoveClientSocket(ServerNet *server, int clientSocket)
     }
 }
 
+static void SignalHandler(int signum) 
+{
+    if (signum == SIGINT) 
+    {
+        g_keepRunning = 0;
+    }
+}

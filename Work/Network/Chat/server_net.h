@@ -1,7 +1,7 @@
 #ifndef SERVER_NET_H
 #define SERVER_NET_H
 
-#define BUFFER_SIZE 1024
+
 
 #include <stddef.h> 
 #include "protocol.h" 

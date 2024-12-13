@@ -8,5 +8,8 @@
 #define MAX_MSG_SIZE 4096
 #define PASS 1
 #define FAIL -1
+#define MAX_ADDR_SIZE 30
+#define MAX_GROUPNAME_LEN 30
+#define BUFFER_SIZE 4096
 
 #endif /*__LIMITS_H__*/

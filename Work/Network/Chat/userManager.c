@@ -2,8 +2,8 @@
 #include "HashMap.h"
 #include "user.h"
 #include "limits.h"
-#include <stdlib.h>
-#include <string.h>
+#include <stdlib.h> /* malloc ,free, NULL */
+#include <string.h> /* strcmp */
 
 #define TRUE 1
 
@@ -12,13 +12,14 @@ struct UserManager
     HashMap *m_users;
 };
 
-// helper functions declarations:
-static size_t HashUsername(void *_username);
-static int CompareUsernames(void *first, void *second);
-static void DestroyUserKey(void *_key);
+/* Helpers Declerations */
+
+static size_t HashUserName(void *_username);
+static int CompareUserNames(void *_first, void *_second);
 static void DestroyUserValue(void *_value);
 
-// Main functions
+/* API Functions */
+
 UserManager *UserManager_Create(size_t _capacity)
 {
     UserManager *manager = (UserManager *)malloc(sizeof(UserManager));
@@ -26,7 +27,7 @@ UserManager *UserManager_Create(size_t _capacity)
     {
         return NULL;
     }
-    manager->m_users = HashMap_Create(_capacity, HashUsername, CompareUsernames);
+    manager->m_users = HashMap_Create(_capacity, HashUserName, CompareUserNames);
     if (!manager->m_users)
     {
         free(manager);
@@ -41,83 +42,100 @@ void UserManager_Destroy(UserManager **_userManager)
     {
         return;
     }
-    HashMap_Destroy(&(*_userManager)->m_users, DestroyUserKey, DestroyUserValue);
+    HashMap_Destroy(&(*_userManager)->m_users, free, DestroyUserValue);
     free(*_userManager);
     *_userManager = NULL;
 }
 
-UserManagerResult UserManager_RegisterUser(UserManager *manager, char *_userName, char *_password)
+UserManagerResult UserManager_RegisterUser(UserManager *_manager, char *_userName, char *_password)
 {
     User *existingUser;
-    char *username;
+    char *userNameKey;
 
-    if (!manager || !_userName || !_password)
+    if (!_manager || !_userName || !_password)
     {
         return USER_MANAGER_UNINITIALIZED_ERROR;
     }
 
-    User *newUser = UserCreate(_userName, _password);
+    User *newUser = User_Create(_userName, _password);
     if (!newUser)
     {
         return USER_MANAGER_ALLOCATION_ERROR;
     }
 
-    if (HashMap_Find(manager->m_users, _userName, (void **)&existingUser) == MAP_SUCCESS)
+    if (HashMap_Find(_manager->m_users, _userName, (void **)&existingUser) == MAP_SUCCESS)
     {
         return USER_MANAGER_USER_ALREADY_EXISTS;
     }
 
-    username = strdup(_userName);
-    if (!username)
+    userNameKey = strdup(_userName);
+    if (!userNameKey)
     {
-        UserDelete(&newUser);
+        User_Destroy(&newUser);
         return USER_MANAGER_ALLOCATION_ERROR;
     }
 
-    if (HashMap_Insert(manager->m_users, username, newUser) != MAP_SUCCESS)
+    if (HashMap_Insert(_manager->m_users, userNameKey, newUser) != MAP_SUCCESS)
     {
-        free(username);
-        UserDelete(&newUser);
+        free(userNameKey);
+        User_Destroy(&newUser);
         return USER_MANAGER_ALLOCATION_ERROR;
     }
 
     return USER_MANAGER_SUCCESS;
 }
 
-UserManagerResult UserManager_LoginUser(UserManager *manager, char *_userName, char *_password)
+UserManagerResult UserManager_LoginUser(UserManager *_manager, char *_userName, char *_password)
 {
     User *foundUser;
 
-    if (!manager || !_userName || !_password)
+    if (!_manager || !_userName || !_password)
     {
         return USER_MANAGER_UNINITIALIZED_ERROR;
     }
 
-    User *cand = UserCreate(_userName, _password);
+    User *cand = User_Create(_userName, _password);
     if (cand == NULL)
     {
         return USER_MANAGER_ALLOCATION_ERROR;
     }
 
-    if (HashMap_Find(manager->m_users, _userName, (void **)&foundUser) != MAP_SUCCESS)
+    if (HashMap_Find(_manager->m_users, _userName, (void **)&foundUser) != MAP_SUCCESS)
     {
-        UserDelete(&cand);
+        User_Destroy(&cand);
         return USER_MANAGER_USER_NOT_FOUND;
     }
 
-    if (PasswordCheck(cand, foundUser) != TRUE)
+    if (User_PasswordCheck(cand, foundUser) != TRUE)
     {
-        UserDelete(&cand);
+        User_Destroy(&cand);
         return USER_MANAGER_WRONG_PASSWORD;
     }
 
-    UserDelete(&cand);
+    User_SetLoginStatus(foundUser, LOGGED_IN);
+
+    User_Destroy(&cand);
     return USER_MANAGER_SUCCESS;
 }
 
-// helper functions
+int UserManager_IsUserLoggedIn(UserManager *_manager, const char *_userName)
+{
+    User *user;
+    if (_manager == NULL || _userName == NULL)
+    {
+        return 0;
+    }
 
-static size_t HashUsername(void *_username)
+    if (HashMap_Find(_manager->m_users, (void *)_userName, (void **)&user) != MAP_SUCCESS)
+    {
+        return 0;
+    }
+    return (User_GetLoginStatus(user) == LOGGED_IN);
+}
+
+/* Helpers */
+
+static size_t HashUserName(void *_username)
 {
     char *username = (char *)_username;
     size_t hash = 0;
@@ -128,18 +146,13 @@ static size_t HashUsername(void *_username)
     return hash;
 }
 
-static int CompareUsernames(void *first, void *second)
+static int CompareUserNames(void *_first, void *_second)
 {
-    return strcmp((char *)first, (char *)second) == 0;
-}
-
-static void DestroyUserKey(void *_key)
-{
-    free(_key);
+    return strcmp((char *)_first, (char *)_second) == 0;
 }
 
 static void DestroyUserValue(void *_value)
 {
     User *user = (User *)_value;
-    UserDelete(&user);
+    User_Destroy(&user);
 }

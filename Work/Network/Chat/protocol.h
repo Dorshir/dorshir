@@ -61,7 +61,7 @@ ProtocolTag GetTag(char *_buffer);
 
 /* Registration */
 
-size_t PackRegReq(UserNamePass *_userNamePass, char *_buffer);
+size_t PackRegReq(UserNamePass *_userNamePass, char *_packed);
 
 ProtocolResult UnPackRegReq(char *_buffer, size_t _length, UserNamePass *_userNamePass);
 
@@ -111,7 +111,7 @@ ProtocolResult UnPackGetGroupsReq(char *_packed, size_t _length, char *_userName
 
 size_t PackGetGroupsRes(char _status, char *_groupsList, char *_packed);
 
-ProtocolResult UnPackCreateGroupRes(char *_packed, size_t _length, char *_status, char *_groupsList);
+ProtocolResult UnPackGetGroupsRes(char *_packed, size_t _length, char *_status, char *_groupsList);
 
 
 /* Leave Group */

@@ -6,6 +6,7 @@ typedef struct ClientApp ClientApp;
 typedef enum ClientApp_Results 
 {
 	CLIENTAPP_LUCK_OF_DATA,
+    CLIENTAPP_ALLOCATION_FAILED,
     CLIENTAPP_SUCSSES,
     CLIENTAPP_COMMUNICATION_ERROR,
     CLIENTAPP_SEND_FAILED,

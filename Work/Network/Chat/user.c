@@ -6,9 +6,10 @@ struct User
 {
     char *m_userName;
     char *m_password;
+    LoginStatus m_isLoggedIn;
 };
 
-User *UserCreate(char *_username, char *_password)
+User *User_Create(char *_username, char *_password)
 {
     if (_username == NULL || _password == NULL)
     {
@@ -47,11 +48,12 @@ User *UserCreate(char *_username, char *_password)
     strncpy(newUser->m_password, _password, passwordLen);
     newUser->m_userName[userNameLen] = '\0';
     newUser->m_password[passwordLen] = '\0';
+    newUser->m_isLoggedIn = LOGGED_OUT; 
 
     return newUser;
 }
 
-void UserDelete(User **_user)
+void User_Destroy(User **_user)
 {
     if (_user == NULL || *_user == NULL)
     {
@@ -65,15 +67,25 @@ void UserDelete(User **_user)
     *_user = NULL;
 }
 
-UserResult PasswordCheck(User *_first, User *_second)
+int User_PasswordCheck(User *_first, User *_second)
 {
     return (strcmp(_first->m_password, _second->m_password) == 0);
 }
 
-int UserNameComperator(void *_first, void *_second)
+void User_SetLoginStatus(User* _user, LoginStatus _status)
 {
-    User *firstUser = (User *)_first;
-    User *secondUser = (User *)_second;
-
-    return (strcmp(firstUser->m_userName, secondUser->m_userName) == 0);
+    if (_user != NULL)
+    {
+        _user->m_isLoggedIn = _status;
+    }
 }
+
+LoginStatus User_GetLoginStatus(User* _user)
+{
+    if (_user == NULL)
+    {
+        return 0;
+    }
+    return _user->m_isLoggedIn;
+}
+

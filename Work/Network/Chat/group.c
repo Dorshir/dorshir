@@ -11,7 +11,7 @@ struct Group
     size_t m_numOfMembers;
 };
 
-char *GroupGetAddress(Group *_group)
+char *Group_GetAddress(Group *_group)
 {
     if (_group == NULL)
     {
@@ -20,7 +20,7 @@ char *GroupGetAddress(Group *_group)
     return _group->m_address;
 }
 
-Group *GroupCreate(char *_groupName, char *_address)
+Group *Group_Create(char *_groupName, char *_address)
 {
     if (_groupName == NULL || _address == NULL)
     {
@@ -28,7 +28,7 @@ Group *GroupCreate(char *_groupName, char *_address)
     }
 
     size_t groupNameLen = strlen(_groupName);
-    size_t addressLen = str(_address);
+    size_t addressLen = strlen(_address);
     if (groupNameLen == 0 || addressLen == 0)
     {
         return NULL;
@@ -66,7 +66,7 @@ Group *GroupCreate(char *_groupName, char *_address)
     return newGroup;
 }
 
-GroupResult GroupIncrementMembers(Group *_group)
+GroupResult Group_IncrementMembers(Group *_group)
 {
     if (_group == NULL)
     {
@@ -76,7 +76,7 @@ GroupResult GroupIncrementMembers(Group *_group)
     return GROUP_SUCCESS;
 }
 
-GroupResult GroupDecrementMembers(Group *_group)
+GroupResult Group_DecrementMembers(Group *_group)
 {
     if (_group == NULL)
     {
@@ -92,7 +92,7 @@ GroupResult GroupDecrementMembers(Group *_group)
     return GROUP_SUCCESS;
 }
 
-void GroupDestroy(Group **_group)
+void Group_Destroy(Group **_group)
 {
     if (_group == NULL || *_group == NULL)
     {
@@ -101,4 +101,22 @@ void GroupDestroy(Group **_group)
     free((*_group)->m_name);
     free(*_group);
     *_group = NULL;
+}
+
+const char* Group_GetName(Group* _group)
+{
+    if (_group == NULL)
+    {
+        return NULL;
+    }
+    return _group->m_name;
+}
+
+size_t Group_GetMemberCount(Group* _group)
+{
+    if (_group == NULL)
+    {
+        return 0;
+    }
+    return _group->m_numOfMembers;
 }

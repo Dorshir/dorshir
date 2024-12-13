@@ -32,7 +32,7 @@ static size_t PackGetGroupsReqWrapper(ProtocolTag _tag, char *_userName, char *_
 static ProtocolResult UnPackGetGroupsReqWrapper(ProtocolTag _tag, char *_packed, size_t _length, char *_userName);
 static size_t PackGetGroupsResWrapper(ProtocolTag _tag, char _status, char *_groupsList, char *_packed);
 static ProtocolResult UnPackCreateGroupResWrapper(ProtocolTag _tag, char *_packed, size_t _length, char *_status, char *_groupsList);
-
+static ProtocolResult UnPackGroupResWithAddress(char *_buffer, size_t _length, char *_status, char **_address, ProtocolTag _expectedTag);
 /* Registration Request */
 
 size_t PackRegReq(UserNamePass *_userNamePass, char *_packed)
@@ -186,7 +186,7 @@ size_t PackGetGroupsRes(char _status, char *_groupsList, char *_packed)
     return PackGetGroupsResWrapper(PROTOCOL_GET_GROUPS_RES, _status, _groupsList, _packed);
 }
 
-ProtocolResult UnPackCreateGroupRes(char *_packed, size_t _length, char *_status, char *_groupsList)
+ProtocolResult UnPackGetGroupsRes(char *_packed, size_t _length, char *_status, char *_groupsList)
 {
     return UnPackCreateGroupResWrapper(PROTOCOL_GET_GROUPS_RES, _packed, _length, _status, _groupsList);
 }
@@ -283,15 +283,25 @@ ProtocolTag GetTag(char *_buffer)
     {
         return PROTOCOL_INVALID_TAG;
     }
-
     ProtocolTag tag = _buffer[TAG_POS];
-
-    if (tag < PROTOCOL_REGISTRATION_REQ || tag > PROTOCOL_LEAVE_GROUP_RES)
+    switch(tag)
     {
-        return PROTOCOL_INVALID_TAG;
+        case PROTOCOL_REGISTRATION_REQ:
+        case PROTOCOL_REGISTRATION_RES:
+        case PROTOCOL_LOGIN_REQ:
+        case PROTOCOL_LOGIN_RES:
+        case PROTOCOL_CREATE_GROUP_REQ:
+        case PROTOCOL_CREATE_GROUP_RES:
+        case PROTOCOL_JOIN_GROUP_REQ:
+        case PROTOCOL_JOIN_GROUP_RES:
+        case PROTOCOL_GET_GROUPS_REQ:
+        case PROTOCOL_GET_GROUPS_RES:
+        case PROTOCOL_LEAVE_GROUP_REQ:
+        case PROTOCOL_LEAVE_GROUP_RES:
+            return tag;
+        default:
+            return PROTOCOL_INVALID_TAG;
     }
-
-    return tag;
 }
 
 /* Static Functions */
@@ -497,16 +507,12 @@ static ProtocolResult UnPackGetGroupsReqWrapper(ProtocolTag _tag, char *_packed,
     {
         return PROTOCOL_INVALID_BUFFER_LENGTH;
     }
-
     unsigned char userNameLen = (unsigned char)_packed[FIRST_FIELD_LEN_POS];
-
-    if (USER_NAME_PASS_REQ_SIZE_TL + userNameLen > _length)
+    if (GET_GROUPS_REQ_SIZE_TL + userNameLen > _length) 
     {
         return PROTOCOL_INVALID_BUFFER_LENGTH;
     }
-
     memcpy(_userName, &_packed[FIRST_FIELD_POS], userNameLen);
-
     _userName[userNameLen] = '\0';
 
     return PROTOCOL_SUCCESS;
@@ -514,21 +520,23 @@ static ProtocolResult UnPackGetGroupsReqWrapper(ProtocolTag _tag, char *_packed,
 
 static size_t PackGetGroupsResWrapper(ProtocolTag _tag, char _status, char *_groupsList, char *_packed)
 {
-    size_t groupsListLen = strlen(_groupsList);
-
+    size_t groupsListLen = (_groupsList != NULL) ? strlen(_groupsList) : 0; 
     size_t length = GET_GROUPS_RES_SIZE_TL + groupsListLen;
 
     if (length >= MAX_MSG_SIZE)
     {
         return 0;
     }
-
     _packed[TAG_POS] = (char)_tag;
     _packed[TOTAL_LENGTH_POS] = (char)length;
     _packed[FIRST_FIELD_LEN_POS] = GROUP_STATUS_SIZE;
     _packed[FIRST_FIELD_POS] = _status;
-    _packed[FIRST_FIELD_POS + GROUP_STATUS_SIZE] = (char)groupsListLen;
-    memcpy(&_packed[GROUP_STATUS_SIZE + GET_GROUPS_RES_SIZE_TL], _groupsList, groupsListLen);
+    
+    if (_status == 1 && _groupsList != NULL)  
+    {
+        _packed[FIRST_FIELD_POS + GROUP_STATUS_SIZE] = (char)groupsListLen;
+        memcpy(&_packed[GROUP_STATUS_SIZE + GET_GROUPS_RES_SIZE_TL], _groupsList, groupsListLen);
+    }
 
     return length;
 }

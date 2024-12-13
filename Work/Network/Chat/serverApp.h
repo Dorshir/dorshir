@@ -4,11 +4,12 @@
 
 #include "protocol.h"
 #include "userManager.h"
+#include "groupManager.h"
 
 typedef struct ServerApp ServerApp;
 
-ServerApp* ServerApp_Create(UserManager* userMng);
+ServerApp *ServerApp_Create(UserManager *_userMng, GroupManager* _groupMng);
 void ServerApp_Destroy(ServerApp** _app);
-void ServerAppHandler(int clientSocket, ProtocolTag tag, char* buffer, size_t length, void* context);
+void ServerAppHandler(int _clientSocket, ProtocolTag _tag, char* _buffer, size_t _length, void* _context);
 
 #endif
