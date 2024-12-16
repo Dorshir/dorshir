@@ -781,21 +781,29 @@ int IsValidCard(Card *_card, Card **_table, void *_context)
 
     if (IS_FIRST_TRICK(rules->m_trickNum))
     {
-        if (IS_EMPTY_TABLE(rules) && !IS_TWO_OF_CLUBS(_card))
+        if (IS_EMPTY_TABLE(rules))
         {
-            PrintMessage("First trick must start with Two of Clubs.\n");
-            return FALSE;
+            if (!IS_TWO_OF_CLUBS(_card))
+            {
+                PrintMessage("First trick must start with Two of Clubs.\n");
+                return FALSE;
+            }
+            if (IS_HEART_SUIT(_card) || IS_QUEEN_OF_SPADES(_card))
+            {
+                PrintMessage("Cannot play Hearts or Queen of Spades on the first trick.\n");
+                return FALSE;
+            }
+
+            rules->m_trickSuit = _card->m_suit;
         }
-        else if (IS_HEART_SUIT(_card) || IS_QUEEN_OF_SPADES(_card))
+        else
         {
-            PrintMessage("Cannot play Hearts or Queen of Spades on the first trick.\n");
-            return FALSE;
-        }
-        Card *openingCard = _table[rules->m_openingPlayerNum];
-        if (openingCard != NULL && !ARE_SAME_SUIT(_card, openingCard) && rules->m_hasTrickSuitCards)
-        {
-            PrintMessage("Must follow suit if you have a card of the same suit.\n");
-            return FALSE;
+            Card *openingCard = _table[rules->m_openingPlayerNum];
+            if (openingCard != NULL && !ARE_SAME_SUIT(_card, openingCard) && rules->m_hasTrickSuitCards)
+            {
+                PrintMessage("Must follow suit if you have a card of the same suit.\n");
+                return FALSE;
+            }
         }
     }
     else if (IS_EMPTY_TABLE(rules))
@@ -810,7 +818,7 @@ int IsValidCard(Card *_card, Card **_table, void *_context)
     else
     {
         Card *openingCard = _table[rules->m_openingPlayerNum];
-        if (!ARE_SAME_SUIT(_card, openingCard) && rules->m_hasTrickSuitCards)
+        if (openingCard != NULL && !ARE_SAME_SUIT(_card, openingCard) && rules->m_hasTrickSuitCards)
         {
             // PrintMessage("Must follow suit if you have a card of the same suit.\n");
             return FALSE;
