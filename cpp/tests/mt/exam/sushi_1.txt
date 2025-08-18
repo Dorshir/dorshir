@@ -1,0 +1,4 @@
+I think there is a problem with the changing state of the "should i wait ot immidietly seat".
+Inisde the if statment, the point where we use mutex.signal() and then block.wait(), but we didnt update the state of the variables 
+other threads depends on to make decisiions, which can accure a situation where more than 5 threads are eating.. 
+But im not sure... having hard time finding the correct issue

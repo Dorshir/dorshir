@@ -1,0 +1,42 @@
+
+**************************************
+[Run 1 | Array size: 10000]
+
+BubbleSort took 0.154554 seconds.
+ShakeSort took 0.176513 seconds.
+QuickSort took 0.001199 seconds.
+InsertionSort took 0.091809 seconds.
+ShellSort took 0.002072 seconds.
+SelectionSort took 0.125101 seconds.
+CountingSort took 0.000191 seconds.
+MergeSortRec took 0.001084 seconds.
+MergeSortIt took 0.001182 seconds.
+RadixSort took 0.000487 seconds.
+
+**************************************
+[Run 2 | Array size: 40000]
+
+BubbleSort took 4.142863 seconds.
+ShakeSort took 2.833750 seconds.
+QuickSort took 0.004734 seconds.
+InsertionSort took 1.160969 seconds.
+ShellSort took 0.008309 seconds.
+SelectionSort took 1.917061 seconds.
+CountingSort took 0.000831 seconds.
+MergeSortRec took 0.004775 seconds.
+MergeSortIt took 0.004714 seconds.
+RadixSort took 0.001966 seconds.
+
+**************************************
+[Run 3 | Array size: 100000]
+
+BubbleSort took 27.864040 seconds.
+ShakeSort took 19.162826 seconds.
+QuickSort took 0.013089 seconds.
+InsertionSort took 6.795001 seconds.
+ShellSort took 0.024095 seconds.
+SelectionSort took 12.087154 seconds.
+CountingSort took 0.002050 seconds.
+MergeSortRec took 0.012810 seconds.
+MergeSortIt took 0.012508 seconds.
+RadixSort took 0.005821 seconds.

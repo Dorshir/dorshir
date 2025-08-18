@@ -1,0 +1,27 @@
+a.  1) Mutual execlusion
+    2) No preemtion
+    3) Hold and wait
+    4) Circular wait
+
+b.  Priority inversion is a problem in schedualing with priority. The problem can accure 
+    when 3 tasks with different priorities while two of them share a lock for a critical section.
+
+    The scenario:
+
+    Lock M;
+
+    Priorities:
+    A:6, B:7, C:8
+
+
+    A starts running, lock M, enter a critical section.
+    Then, B comes, schedualer take off A and let B do its job.
+    While B is running, higher priority C is joining, but C cannot open lock M because it is locked by A, 
+    which cant release it because B is in higher priority.
+    So highest priority C cannot run because it depend on lower priority A.
+
+
+c.  Atomic operation is an operation that rather happen fully or doesnt happen at all. Meaning if the atomic operation is 
+    a set of small operations, it is all happen or nothing happen.
+    Since atomic operations cannot be partily executed, they can prevent race conditions in multithreading env, without
+    relying on explicit locks.
