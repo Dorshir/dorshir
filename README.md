@@ -1,11 +1,8 @@
-Hi 👋 My name is Dor Shir
-=========================
-
 Software Engineer
 -----------------
 
-*   🌍  I'm based in Tel Aviv, Israel
-*   ✉️  You can contact me at [Dorshirf@gmail.com](mailto:Dorshirf@gmail.com)
+*   🌍  Based in Tel Aviv, Israel
+*   ✉️  Contact me at [Dorshirf@gmail.com](mailto:Dorshirf@gmail.com)
 
 
 <p align="left">
